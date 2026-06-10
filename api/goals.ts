@@ -12,71 +12,71 @@ const authenticate = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
+  res.setHeader('Content-Type', 'application/json');
+
   try {
-  await connectDB();
+    await connectDB();
 
-  let user;
-  try {
-    user = authenticate(req);
-  } catch (e) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+    let user;
+    try {
+      user = authenticate(req);
+    } catch (e) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-  const { method, query } = req;
-  const id = query.path ? query.path[0] : null;
+    const { method, query } = req;
+    const id = Array.isArray(query.path) ? query.path[0] : query.path;
 
-  switch (method) {
-    case 'GET':
-      try {
-        const goals = await (Goal as any).find({ userId: user.userId });
-        res.json(goals.map(g => ({ ...g.toObject(), id: g._id })));
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch goals' });
-      }
-      break;
-    case 'POST':
-      try {
-        const newGoal = new Goal({ ...req.body, userId: user.userId });
-        await newGoal.save();
-        res.status(201).json({ ...newGoal.toObject(), id: newGoal._id });
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to create goal' });
-      }
-      break;
-    case 'PUT':
-      try {
-        const updatedGoal = await (Goal as any).findOneAndUpdate(
-          { _id: id, userId: user.userId },
-          req.body,
-          { new: true }
-        );
-        if (updatedGoal) {
-          res.json({ ...updatedGoal.toObject(), id: updatedGoal._id });
-        } else {
-          res.status(404).json({ error: 'Goal not found' });
+    switch (method) {
+      case 'GET':
+        try {
+          const goals = await (Goal as any).find({ userId: user.userId });
+          return res.json(goals.map(g => ({ ...g.toObject(), id: g._id })));
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to fetch goals' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to update goal' });
-      }
-      break;
-    case 'DELETE':
-      try {
-        const result = await (Goal as any).findOneAndDelete({ _id: id, userId: user.userId });
-        if (result) {
-          res.status(204).send();
-        } else {
-          res.status(404).json({ error: 'Goal not found' });
+      case 'POST':
+        try {
+          const newGoal = new Goal({ ...req.body, userId: user.userId });
+          await newGoal.save();
+          return res.status(201).json({ ...newGoal.toObject(), id: newGoal._id });
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to create goal' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to delete goal' });
-      }
-      break;
-    default:
-      res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-      res.status(405).json({ error: `Method ${method} Not Allowed` });
-  }
+      case 'PUT':
+        try {
+          if (!id) return res.status(400).json({ error: 'ID is required' });
+          const updatedGoal = await (Goal as any).findOneAndUpdate(
+            { _id: id, userId: user.userId },
+            req.body,
+            { new: true }
+          );
+          if (updatedGoal) {
+            return res.json({ ...updatedGoal.toObject(), id: updatedGoal._id });
+          } else {
+            return res.status(404).json({ error: 'Goal not found' });
+          }
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to update goal' });
+        }
+      case 'DELETE':
+        try {
+          if (!id) return res.status(400).json({ error: 'ID is required' });
+          const result = await (Goal as any).findOneAndDelete({ _id: id, userId: user.userId });
+          if (result) {
+            return res.status(204).end();
+          } else {
+            return res.status(404).json({ error: 'Goal not found' });
+          }
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to delete goal' });
+        }
+      default:
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+        return res.status(405).json({ error: `Method ${method} Not Allowed` });
+    }
   } catch (error: any) {
     console.error('Goals API Error:', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }

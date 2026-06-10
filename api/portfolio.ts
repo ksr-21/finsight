@@ -12,34 +12,34 @@ const authenticate = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
+  res.setHeader('Content-Type', 'application/json');
+
   try {
-  await connectDB();
+    await connectDB();
 
-  let user;
-  try {
-    user = authenticate(req);
-  } catch (e) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+    let user;
+    try {
+      user = authenticate(req);
+    } catch (e) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-  const { method, query } = req;
-  const id = query.path ? query.path[0] : null;
+    const { method } = req;
 
-  switch (method) {
-    case 'GET':
-      try {
-        const portfolio = await (PortfolioAsset as any).find({ userId: user.userId });
-        res.json(portfolio.map(p => ({ ...p.toObject(), id: p._id })));
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch portfolio' });
-      }
-      break;
-    default:
-      res.setHeader('Allow', ['GET']);
-      res.status(405).end(`Method ${method} Not Allowed`);
-  }
+    switch (method) {
+      case 'GET':
+        try {
+          const portfolio = await (PortfolioAsset as any).find({ userId: user.userId });
+          return res.json(portfolio.map(p => ({ ...p.toObject(), id: p._id })));
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to fetch portfolio' });
+        }
+      default:
+        res.setHeader('Allow', ['GET']);
+        return res.status(405).json({ error: `Method ${method} Not Allowed` });
+    }
   } catch (error: any) {
     console.error('Portfolio API Error:', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }

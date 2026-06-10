@@ -6,8 +6,17 @@ import { User } from '../models/User';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
 
 export default async function handler(req: any, res: any) {
-  // Always set JSON content-type first so Vercel never returns HTML error pages
+  // Always set JSON content-type first
   res.setHeader('Content-Type', 'application/json');
+
+  // Basic CORS support for serverless functions
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   try {
     console.log(`Auth API: ${req.method} ${req.url}`);
@@ -20,14 +29,14 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      console.warn('JWT_SECRET is missing, using fallback (not recommended for production)');
-    }
-
     await connectDB();
 
-    const { method } = req;
+    const { method, query } = req;
     const url = req.url || '';
+
+    // Determine the action (login or signup) from the URL path or query parameters
+    const isSignup = url.includes('/signup') || query.path === 'signup' || (Array.isArray(query.path) && query.path.includes('signup'));
+    const isLogin = url.includes('/login') || query.path === 'login' || (Array.isArray(query.path) && query.path.includes('login'));
 
     if (method !== 'POST') {
       res.setHeader('Allow', ['POST']);
@@ -40,24 +49,28 @@ export default async function handler(req: any, res: any) {
     }
 
     // --- SIGNUP ---
-    if (url.includes('/signup')) {
+    if (isSignup) {
       const { email, password, displayName } = body;
 
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      const existingUser = await (User as any).findOne({ email });
+      const existingUser = await (User as any).findOne({ email: email.toLowerCase() });
       if (existingUser) {
         return res.status(400).json({ error: 'User already exists' });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const user = new User({ email, password: hashedPassword, displayName });
+      const user = new User({
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        displayName: displayName || email.split('@')[0]
+      });
       await user.save();
 
       const userIdStr = user._id.toString();
-      const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
+      const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
       return res.status(201).json({
         token,
         user: { uid: userIdStr, email: user.email, displayName: user.displayName }
@@ -65,14 +78,14 @@ export default async function handler(req: any, res: any) {
     }
 
     // --- LOGIN ---
-    if (url.includes('/login')) {
+    if (isLogin) {
       const { email, password } = body;
 
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      const user = await (User as any).findOne({ email });
+      const user = await (User as any).findOne({ email: email.toLowerCase() });
       if (!user) {
         return res.status(400).json({ error: 'Invalid credentials' });
       }
@@ -83,21 +96,24 @@ export default async function handler(req: any, res: any) {
       }
 
       const userIdStr = user._id.toString();
-      const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
+      const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
       return res.json({
         token,
         user: { uid: userIdStr, email: user.email, displayName: user.displayName }
       });
     }
 
-    return res.status(404).json({ error: `Auth endpoint not found: ${url}` });
+    return res.status(404).json({
+      error: `Auth endpoint not found`,
+      path: url,
+      hint: 'Expected /api/auth/login or /api/auth/signup'
+    });
 
   } catch (error: any) {
     console.error('Auth API Error:', error.message);
-    // Always return JSON, never let Vercel serve its HTML error page
     return res.status(500).json({
       error: error.message?.includes('connect') || error.message?.includes('mongo')
-        ? 'Database connection failed. Please try again.'
+        ? 'Database connection failed'
         : 'Internal server error',
       details: error.message
     });
