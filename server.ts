@@ -1,14 +1,17 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import fs from 'fs/promises';
 import Parser from 'rss-parser';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import connectDB from './lib/mongodb';
+import { config } from './lib/config';
 import { User } from './models/User';
 import { Transaction } from './models/Transaction';
 import { Budget } from './models/Budget';
@@ -16,9 +19,7 @@ import { Goal } from './models/Goal';
 import { Bill } from './models/Bill';
 import { PortfolioAsset } from './models/PortfolioAsset';
 
-dotenv.config();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
+const JWT_SECRET = config.JWT_SECRET;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,15 +121,20 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const existingUser = await (User as any).findOne({ email });
+    const normalizedEmail = email.toLowerCase();
+    const existingUser = await (User as any).findOne({ email: normalizedEmail });
     if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ email, password: hashedPassword, displayName });
+    const user = new User({
+      email: normalizedEmail,
+      password: hashedPassword,
+      displayName: displayName || normalizedEmail.split('@')[0]
+    });
     await user.save();
 
     const userIdStr = user._id.toString();
-    const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
+    const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
     return res.status(201).json({
       token,
@@ -151,14 +157,15 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = await (User as any).findOne({ email });
+    const normalizedEmail = email.toLowerCase();
+    const user = await (User as any).findOne({ email: normalizedEmail });
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
 
     const userIdStr = user._id.toString();
-    const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
+    const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
     return res.json({
       token,
