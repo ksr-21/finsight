@@ -142,19 +142,6 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                             >
                                 {isLoading ? <RefreshIcon className="animate-spin h-5 w-5" /> : (isLogin ? 'Login' : 'Sign Up')}
                             </button>
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const guestUser = { uid: 'guest_user', email: 'guest@example.com', displayName: 'Guest User' };
-                                    localStorage.setItem('finsight_user', JSON.stringify(guestUser));
-                                    onAuthSuccess(guestUser);
-                                }}
-                                disabled={isLoading}
-                                className="w-full h-12 flex justify-center items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-text-primary dark:text-white text-sm font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95"
-                            >
-                                Skip for now (Offline Mode)
-                            </button>
                         </div>
                     </form>
                     <div className="mt-6 text-center">
@@ -166,6 +153,20 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                             {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login"}
                         </button>
                     </div>
+                </div>
+                <div className="mt-6 text-center">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const guestUser = { uid: 'guest_user', email: 'guest@example.com', displayName: 'Guest User' };
+                            localStorage.setItem('finsight_user', JSON.stringify(guestUser));
+                            onAuthSuccess(guestUser);
+                        }}
+                        disabled={isLoading}
+                        className="text-sm font-bold text-text-secondary dark:text-gray-400 hover:underline disabled:text-gray-600"
+                    >
+                        Skip for now
+                    </button>
                 </div>
             </div>
         </div>
