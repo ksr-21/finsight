@@ -22,7 +22,7 @@ export default async function handler(req: any, res: any) {
   try {
     console.log(`Auth API: ${req.method} ${req.url}`);
 
-    if (!process.env.MONGODB_URI) {
+    if (!config.MONGODB_URI) {
       console.error('CRITICAL: MONGODB_URI is missing');
       return res.status(500).json({
         error: 'Database configuration missing',

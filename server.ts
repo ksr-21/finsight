@@ -36,7 +36,7 @@ app.use(express.json());
 app.use(async (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     try {
-      if (!process.env.MONGODB_URI) {
+      if (!config.MONGODB_URI) {
         console.error('CRITICAL: MONGODB_URI is missing');
         return res.status(500).json({
           error: 'Database configuration missing',
@@ -48,7 +48,9 @@ app.use(async (req, res, next) => {
     } catch (error: any) {
       console.error('Database connection failed:', error.message);
       res.status(500).json({
-        error: 'Database connection failed',
+        error: error.message?.includes('connect') || error.message?.includes('mongo')
+          ? 'Database connection failed'
+          : 'Internal server error',
         details: error.message
       });
     }
