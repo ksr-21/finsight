@@ -12,6 +12,8 @@ const authenticate = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
+  res.setHeader('Content-Type', 'application/json');
+
   try {
     await connectDB();
 
@@ -23,9 +25,6 @@ export default async function handler(req: any, res: any) {
     }
 
     const { method, query } = req;
-    // Vercel routes params might be in query[path] or similar depending on vercel.json
-    // The rewrite is /api/transactions/:path* -> /api/transactions.ts
-    // For /api/transactions/123, query.path could be "123" or ["123"]
     const id = Array.isArray(query.path) ? query.path[0] : query.path;
 
     switch (method) {
