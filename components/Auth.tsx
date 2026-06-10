@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChartPieIcon, ArrowLeftIcon, RefreshIcon } from './icons';
 import { User } from '../types';
+import { signInWithEmail, signUpWithEmail } from '../services/firestoreService';
 
 interface AuthProps {
     onAuthSuccess: (user: User) => void;
@@ -35,47 +36,21 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
         setIsLoading(true);
 
         try {
-            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
-            const body = isLogin ? { email, password } : { email, password, displayName: name };
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                // Try to parse JSON error, fall back to text, then generic message
-                let errorMessage = 'Authentication failed. Please try again.';
-                const contentType = response.headers.get('content-type') || '';
-
-                if (contentType.includes('application/json')) {
-                    try {
-                        const errData = await response.json();
-                        errorMessage = errData.error || errorMessage;
-                    } catch {
-                        errorMessage = `Error ${response.status}: ${response.statusText}`;
-                    }
-                } else {
-                    try {
-                        const textError = await response.text();
-                        if (textError && textError.length < 200) {
-                            errorMessage = textError;
-                        } else {
-                            errorMessage = `Server Error ${response.status}: ${response.statusText}`;
-                        }
-                    } catch {
-                        errorMessage = `Server error ${response.status}. Please check your connection.`;
-                    }
-                }
-                throw new Error(errorMessage);
+            let firebaseUser;
+            if (isLogin) {
+                firebaseUser = await signInWithEmail(email, password);
+            } else {
+                firebaseUser = await signUpWithEmail(email, password, name);
             }
 
-            const data = await response.json();
+            const user: User = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName || name || email.split('@')[0]
+            };
 
-            localStorage.setItem('finsight_token', data.token);
-            localStorage.setItem('finsight_user', JSON.stringify(data.user));
-            onAuthSuccess(data.user);
+            localStorage.setItem('finsight_user', JSON.stringify(user));
+            onAuthSuccess(user);
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred. Please try again.');
             console.error(err);

@@ -3,10 +3,10 @@
 @theme {
   --color-primary: #4F46E5;
   --color-secondary: #10B981;
-  --color-background: #F3F4F6;
-  --color-card: #FFFFFF;
-  --color-text-primary: #111827;
-  --color-text-secondary: #6B7280;
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
   --color-primary-dark: #6366F1;
   --color-secondary-dark: #34D399;
 }
@@ -16,6 +16,18 @@
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+
+  --background: #F3F4F6;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --card: #FFFFFF;
+}
+
+.dark {
+  --background: #111827;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --card: #1F2937;
 }
 
 input, textarea, [contenteditable="true"] {
@@ -29,6 +41,9 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  background-color: var(--background);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 #root {

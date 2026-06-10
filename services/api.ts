@@ -1,4 +1,5 @@
 import { Transaction, Budget, Goal, Bill, PortfolioAsset, FinancialHealthScore } from '../types';
+import * as firestore from './firestoreService';
 
 const STORAGE_KEYS = {
   TRANSACTIONS: 'transactions',
@@ -33,52 +34,6 @@ const setLocal = (userId: string, key: string, data: any) => {
   }
 };
 
-const getAuthToken = () => localStorage.getItem('finsight_token');
-
-const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
-  };
-
-  const response = await fetch(url, { ...options, headers });
-
-  if (response.status === 204) return null;
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      // Handle unauthorized
-    }
-
-    let errorMessage = 'API request failed';
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.error || errorMessage;
-    } catch (e) {
-      // If not JSON, try to get text or just use default message
-      try {
-        const textError = await response.text();
-        if (textError && textError.length < 200) { // Don't show huge HTML pages
-          errorMessage = textError;
-        }
-      } catch (textErr) {
-        // Fallback to default message
-      }
-    }
-    throw new Error(errorMessage);
-  }
-
-  try {
-    return await response.json();
-  } catch (e) {
-    throw new Error('Failed to parse server response');
-  }
-};
-
-const API_BASE = '/api';
-
 export const api = {
   // Transactions
   getTransactions: async (userId: string): Promise<Transaction[]> => {
@@ -86,7 +41,7 @@ export const api = {
       return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/transactions`);
+      return await firestore.getTransactionsForUser(userId);
     } catch (e) {
       console.warn("Using offline transactions", e);
       return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
@@ -101,11 +56,7 @@ export const api = {
       return newTransaction;
     }
     try {
-      const newTransaction = await fetchWithAuth(`${API_BASE}/transactions`, {
-        method: 'POST',
-        body: JSON.stringify(t),
-      });
-      return newTransaction;
+      return await firestore.addTransactionForUser(userId, t);
     } catch (e) {
       const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
       const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
@@ -122,10 +73,8 @@ export const api = {
       return updated.find(item => item.id === id) as Transaction;
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/transactions/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(t),
-      });
+      await firestore.updateTransactionForUser(userId, id, t);
+      return { id, ...t } as Transaction;
     } catch (e) {
       const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
       const updated = current.map(item => item.id === id ? { ...item, ...t } : item);
@@ -141,9 +90,7 @@ export const api = {
       return;
     }
     try {
-      await fetchWithAuth(`${API_BASE}/transactions/${id}`, {
-        method: 'DELETE',
-      });
+      await firestore.deleteTransactionForUser(userId, id);
     } catch (e) {
       const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
       setLocal(userId, STORAGE_KEYS.TRANSACTIONS, current.filter(item => item.id !== id));
@@ -152,7 +99,6 @@ export const api = {
 
   // AI Features
   getForecast: async (history: Transaction[]): Promise<any> => {
-    // Forecast is simulated since we don't have a backend anymore
     const forecast = Array.from({ length: 30 }, (_, i) => ({
       date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
       amount: 100 + Math.random() * 50
@@ -186,11 +132,9 @@ export const api = {
     const portfolioValue = portfolio.reduce((sum, a) => sum + (a.quantity * a.currentPrice), 0);
     const netWorth = cashBalance + portfolioValue;
 
-    // 1. Savings Score (0-100) - Target 20% savings rate
     const savingsRate = income > 0 ? Math.max(0, (income - expenses) / income) : 0;
     const savingsScore = Math.min(100, Math.round((savingsRate / 0.2) * 100));
 
-    // 2. Spending Score (0-100) - Based on budget adherence
     let spendingScore = 100;
     if (budgets.length > 0) {
       let totalBudgeted = 0;
@@ -210,12 +154,10 @@ export const api = {
         spendingScore = Math.min(100, Math.round(Math.max(0, 1 - (expenses / income)) * 100));
     }
 
-    // 3. Investment Score (0-100) - Target 30% of Net Worth in investments
     const investmentRatio = netWorth > 0 ? portfolioValue / netWorth : 0;
     const investmentScore = Math.min(100, Math.round((investmentRatio / 0.3) * 100));
 
-    // 4. Emergency Fund Score (0-100) - Target 3 months of expenses
-    const monthlyExpenses = expenses || 1; // avoid division by zero
+    const monthlyExpenses = expenses || 1;
     const runwayMonths = Math.max(0, cashBalance / monthlyExpenses);
     const debtScore = Math.min(100, Math.round((runwayMonths / 3) * 100));
 
@@ -246,7 +188,7 @@ export const api = {
       return getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/budgets`);
+      return await firestore.getBudgetsForUser(userId);
     } catch (e) {
       return getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
     }
@@ -260,10 +202,7 @@ export const api = {
       return newBudget;
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/budgets`, {
-        method: 'POST',
-        body: JSON.stringify(b),
-      });
+      return await firestore.addBudgetForUser(userId, b);
     } catch (e) {
       const newBudget = { ...b, id: Math.random().toString(36).substr(2, 9) } as Budget;
       const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
@@ -280,10 +219,8 @@ export const api = {
       return updated.find(item => item.id === id) as Budget;
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/budgets/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(b),
-      });
+      await firestore.updateBudgetForUser(userId, id, b);
+      return { id, ...b } as Budget;
     } catch (e) {
       const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
       const updated = current.map(item => item.id === id ? { ...item, ...b } : item);
@@ -299,9 +236,7 @@ export const api = {
       return;
     }
     try {
-      await fetchWithAuth(`${API_BASE}/budgets/${id}`, {
-        method: 'DELETE',
-      });
+      await firestore.deleteBudgetForUser(userId, id);
     } catch (e) {
       const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
       setLocal(userId, STORAGE_KEYS.BUDGETS, current.filter(item => item.id !== id));
@@ -314,7 +249,7 @@ export const api = {
       return getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/goals`);
+      return await firestore.getGoalsForUser(userId);
     } catch (e) {
       return getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
     }
@@ -328,10 +263,7 @@ export const api = {
       return newGoal;
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/goals`, {
-        method: 'POST',
-        body: JSON.stringify(g),
-      });
+      return await firestore.addGoalForUser(userId, g);
     } catch (e) {
       const newGoal = { ...g, id: Math.random().toString(36).substr(2, 9) } as Goal;
       const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
@@ -348,10 +280,8 @@ export const api = {
       return updated.find(item => item.id === id) as Goal;
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/goals/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(g),
-      });
+      await firestore.updateGoalForUser(userId, id, g);
+      return { id, ...g } as Goal;
     } catch (e) {
       const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
       const updated = current.map(item => item.id === id ? { ...item, ...g } : item);
@@ -367,9 +297,7 @@ export const api = {
       return;
     }
     try {
-      await fetchWithAuth(`${API_BASE}/goals/${id}`, {
-        method: 'DELETE',
-      });
+      await firestore.deleteGoalForUser(userId, id);
     } catch (e) {
       const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
       setLocal(userId, STORAGE_KEYS.GOALS, current.filter(item => item.id !== id));
@@ -382,7 +310,7 @@ export const api = {
       return getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/bills`);
+      return await firestore.getBillsForUser(userId);
     } catch (e) {
       return getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
     }
@@ -394,7 +322,7 @@ export const api = {
       return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
     }
     try {
-      return await fetchWithAuth(`${API_BASE}/portfolio`);
+      return await firestore.getPortfolioForUser(userId);
     } catch (e) {
       return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
     }
