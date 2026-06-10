@@ -26,10 +26,11 @@ async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 8000, // Reduced for serverless (fail before Vercel timeout)
+      connectTimeoutMS: 8000,
       socketTimeoutMS: 30000,
       maxPoolSize: 1, // Keep pool small for serverless
+      dbName: 'finsight'
     };
 
     console.log('Connecting to MongoDB...');

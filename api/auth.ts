@@ -20,7 +20,8 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    console.log(`Auth API: ${req.method} ${req.url}`);
+    const { method, query, url = '' } = req;
+    console.log(`Auth API: ${method} ${url}`, { query });
 
     if (!config.MONGODB_URI) {
       console.error('CRITICAL: MONGODB_URI is missing');
@@ -32,12 +33,10 @@ export default async function handler(req: any, res: any) {
 
     await connectDB();
 
-    const { method, query } = req;
-    const url = req.url || '';
-
     // Determine the action (login or signup) from the URL path or query parameters
-    const isSignup = url.includes('/signup') || query.path === 'signup' || (Array.isArray(query.path) && query.path.includes('signup'));
-    const isLogin = url.includes('/login') || query.path === 'login' || (Array.isArray(query.path) && query.path.includes('login'));
+    const pathParts = Array.isArray(query.path) ? query.path : (query.path ? [query.path] : []);
+    const isSignup = url.includes('/signup') || pathParts.includes('signup');
+    const isLogin = url.includes('/login') || pathParts.includes('login');
 
     if (method !== 'POST') {
       res.setHeader('Allow', ['POST']);
