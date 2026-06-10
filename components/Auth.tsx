@@ -48,13 +48,25 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                 // Try to parse JSON error, fall back to text, then generic message
                 let errorMessage = 'Authentication failed. Please try again.';
                 const contentType = response.headers.get('content-type') || '';
+
                 if (contentType.includes('application/json')) {
                     try {
                         const errData = await response.json();
                         errorMessage = errData.error || errorMessage;
-                    } catch { /* ignore */ }
-                } else if (response.status === 500) {
-                    errorMessage = 'Server error. Please check your connection or try again later.';
+                    } catch {
+                        errorMessage = `Error ${response.status}: ${response.statusText}`;
+                    }
+                } else {
+                    try {
+                        const textError = await response.text();
+                        if (textError && textError.length < 200) {
+                            errorMessage = textError;
+                        } else {
+                            errorMessage = `Server Error ${response.status}: ${response.statusText}`;
+                        }
+                    } catch {
+                        errorMessage = `Server error ${response.status}. Please check your connection.`;
+                    }
                 }
                 throw new Error(errorMessage);
             }
