@@ -1,0 +1,41 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth"
+    },
+    {
+      "source": "/api/transactions/:path*",
+      "destination": "/api/transactions"
+    },
+    {
+      "source": "/api/budgets/:path*",
+      "destination": "/api/budgets"
+    },
+    {
+      "source": "/api/goals/:path*",
+      "destination": "/api/goals"
+    },
+    {
+      "source": "/api/bills/:path*",
+      "destination": "/api/bills"
+    },
+    {
+      "source": "/api/portfolio/:path*",
+      "destination": "/api/portfolio"
+    },
+    {
+      "source": "/api/news/:path*",
+      "destination": "/api/news"
+    },
+    {
+      "source": "/api/ai/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api/|assets/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

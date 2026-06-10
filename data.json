@@ -1,0 +1,94 @@
+{
+  "users": [
+    {
+      "_id": "om4prvyo9",
+      "email": "test@example.com",
+      "password": "$2b$10$ZPPtFQ8seBFHw9SM7syibuLk7dsA1v/jLIQQgGQsBQSPho2lnnJqO",
+      "displayName": "Test User"
+    },
+    {
+      "_id": "7r2atf6gh",
+      "email": "ksr@gmail.com",
+      "password": "$2b$10$IwkMrIzRpCneejWoU2OueurOeBoc3Os3LzfCox8pwJ.AtR0oYYBCO",
+      "displayName": "ksr"
+    }
+  ],
+  "transactions": [
+    {
+      "description": "Salary",
+      "amount": 5000,
+      "type": "Income",
+      "category": "Salary",
+      "date": "2026-04-01",
+      "id": "1"
+    },
+    {
+      "description": "Rent",
+      "amount": 1500,
+      "type": "Expense",
+      "category": "Rent",
+      "date": "2026-04-01",
+      "id": "2"
+    },
+    {
+      "description": "Offline Scoped Test",
+      "amount": 99.99,
+      "type": "Expense",
+      "category": "Food",
+      "date": "2026-04-01",
+      "notes": "",
+      "isRecurring": false,
+      "isSplit": false,
+      "id": "awsqjx2u5"
+    },
+    {
+      "description": "Food",
+      "amount": 100,
+      "type": "Expense",
+      "category": "Food",
+      "date": "2026-06-09",
+      "id": "1m1x1qov9",
+      "userId": "7r2atf6gh"
+    }
+  ],
+  "budgets": [],
+  "goals": [],
+  "bills": [
+    {
+      "id": "1",
+      "name": "Electricity Bill",
+      "amount": 1200,
+      "dueDate": "2026-04-05",
+      "isPaid": false,
+      "category": "Utilities"
+    },
+    {
+      "id": "2",
+      "name": "Internet",
+      "amount": 800,
+      "dueDate": "2026-04-10",
+      "isPaid": true,
+      "category": "Utilities"
+    }
+  ],
+  "portfolio": [
+    {
+      "id": "1",
+      "symbol": "RELIANCE",
+      "name": "Reliance Industries",
+      "quantity": 10,
+      "averagePrice": 2400,
+      "currentPrice": 2850,
+      "type": "stock"
+    },
+    {
+      "id": "2",
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "quantity": 0.05,
+      "averagePrice": 45000,
+      "currentPrice": 65000,
+      "type": "crypto"
+    }
+  ]
+}
