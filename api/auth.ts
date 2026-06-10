@@ -2,8 +2,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import connectDB from '../lib/mongodb';
 import { User } from '../models/User';
+import { config } from '../lib/config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
+const JWT_SECRET = config.JWT_SECRET;
 
 export default async function handler(req: any, res: any) {
   // Always set JSON content-type first

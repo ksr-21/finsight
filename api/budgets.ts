@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 import connectDB from '../lib/mongodb';
 import { Budget } from '../models/Budget';
+import { config } from '../lib/config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
+const JWT_SECRET = config.JWT_SECRET;
 
 const authenticate = (req: any) => {
   const authHeader = req.headers['authorization'];
