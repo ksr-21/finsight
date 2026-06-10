@@ -2,19 +2,23 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
-// TODO: Add your own Firebase configuration from your Firebase project settings
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA1r1WsnV4rmLdf1XEcO7-QPEUNTJfCGt8",
+  authDomain: "success-squad-eureka.firebaseapp.com",
+  projectId: "success-squad-eureka",
+  storageBucket: "success-squad-eureka.firebasestorage.app",
+  messagingSenderId: "980912585121",
+  appId: "1:980912585121:web:b89422e515f76bc82373e0",
+  measurementId: "G-QT7070K1QW"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
+export { app, analytics };
 export const auth = getAuth(app);
 export const db = getFirestore(app);

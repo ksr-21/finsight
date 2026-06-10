@@ -4,7 +4,8 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     onAuthStateChanged,
-    User as FirebaseUser
+    User as FirebaseUser,
+    updateProfile
 } from 'firebase/auth';
 import {
     getFirestore,
@@ -20,7 +21,7 @@ import {
     orderBy
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Transaction, Currency, User } from '../types';
+import { Transaction, Currency, Budget, Goal, Bill, PortfolioAsset } from '../types';
 
 interface UserPreferences {
     isDarkMode: boolean;
@@ -51,9 +52,12 @@ const formatAuthError = (errorCode: string): string => {
     }
 }
 
-export const signUpWithEmail = async (email: string, password: string): Promise<FirebaseUser> => {
+export const signUpWithEmail = async (email: string, password: string, displayName?: string): Promise<FirebaseUser> => {
     try {
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
+        if (displayName) {
+            await updateProfile(user, { displayName });
+        }
         await createUserDocumentFromAuth(user);
         return user;
     } catch (error: any) {
@@ -83,7 +87,7 @@ export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
     const userSnapshot = await getDoc(userDocRef);
 
     if (!userSnapshot.exists()) {
-        const { email } = user;
+        const { email, displayName } = user;
         const createdAt = new Date();
         const defaultPreferences: UserPreferences = {
             isDarkMode: false,
@@ -93,6 +97,7 @@ export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
         try {
             await setDoc(userDocRef, {
                 email,
+                displayName,
                 createdAt
             });
             // Also create initial preferences
@@ -134,21 +139,110 @@ export const getTransactionsForUser = async (userId: string): Promise<Transactio
     } as Transaction));
 };
 
-export const addTransactionForUser = async (userId: string, transaction: Omit<Transaction, 'id'>): Promise<void> => {
+export const addTransactionForUser = async (userId: string, transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
     const transactionsColRef = collection(db, 'users', userId, 'transactions');
-    await addDoc(transactionsColRef, transaction);
+    const docRef = await addDoc(transactionsColRef, transaction);
+    return { id: docRef.id, ...transaction } as Transaction;
 };
 
-export const updateTransactionForUser = async (userId: string, transaction: Transaction): Promise<void> => {
-    if (!transaction.id) {
-        throw new Error("Transaction ID is required for updates.");
-    }
-    const transactionDocRef = doc(db, 'users', userId, 'transactions', transaction.id);
-    const { id, ...transactionData } = transaction;
-    await updateDoc(transactionDocRef, transactionData);
+export const updateTransactionForUser = async (userId: string, id: string, transaction: Partial<Transaction>): Promise<void> => {
+    const transactionDocRef = doc(db, 'users', userId, 'transactions', id);
+    await updateDoc(transactionDocRef, transaction);
 };
 
 export const deleteTransactionForUser = async (userId: string, transactionId: string): Promise<void> => {
     const transactionDocRef = doc(db, 'users', userId, 'transactions', transactionId);
     await deleteDoc(transactionDocRef);
+};
+
+// Budgets
+export const getBudgetsForUser = async (userId: string): Promise<Budget[]> => {
+    const colRef = collection(db, 'users', userId, 'budgets');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Budget));
+};
+
+export const addBudgetForUser = async (userId: string, budget: Omit<Budget, 'id'>): Promise<Budget> => {
+    const colRef = collection(db, 'users', userId, 'budgets');
+    const docRef = await addDoc(colRef, budget);
+    return { id: docRef.id, ...budget } as Budget;
+};
+
+export const updateBudgetForUser = async (userId: string, id: string, budget: Partial<Budget>): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'budgets', id);
+    await updateDoc(docRef, budget);
+};
+
+export const deleteBudgetForUser = async (userId: string, id: string): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'budgets', id);
+    await deleteDoc(docRef);
+};
+
+// Goals
+export const getGoalsForUser = async (userId: string): Promise<Goal[]> => {
+    const colRef = collection(db, 'users', userId, 'goals');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Goal));
+};
+
+export const addGoalForUser = async (userId: string, goal: Omit<Goal, 'id'>): Promise<Goal> => {
+    const colRef = collection(db, 'users', userId, 'goals');
+    const docRef = await addDoc(colRef, goal);
+    return { id: docRef.id, ...goal } as Goal;
+};
+
+export const updateGoalForUser = async (userId: string, id: string, goal: Partial<Goal>): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'goals', id);
+    await updateDoc(docRef, goal);
+};
+
+export const deleteGoalForUser = async (userId: string, id: string): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'goals', id);
+    await deleteDoc(docRef);
+};
+
+// Bills
+export const getBillsForUser = async (userId: string): Promise<Bill[]> => {
+    const colRef = collection(db, 'users', userId, 'bills');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bill));
+};
+
+export const addBillForUser = async (userId: string, bill: Omit<Bill, 'id'>): Promise<Bill> => {
+    const colRef = collection(db, 'users', userId, 'bills');
+    const docRef = await addDoc(colRef, bill);
+    return { id: docRef.id, ...bill } as Bill;
+};
+
+export const updateBillForUser = async (userId: string, id: string, bill: Partial<Bill>): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'bills', id);
+    await updateDoc(docRef, bill);
+};
+
+export const deleteBillForUser = async (userId: string, id: string): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'bills', id);
+    await deleteDoc(docRef);
+};
+
+// Portfolio
+export const getPortfolioForUser = async (userId: string): Promise<PortfolioAsset[]> => {
+    const colRef = collection(db, 'users', userId, 'portfolio');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PortfolioAsset));
+};
+
+export const addPortfolioAssetForUser = async (userId: string, asset: Omit<PortfolioAsset, 'id'>): Promise<PortfolioAsset> => {
+    const colRef = collection(db, 'users', userId, 'portfolio');
+    const docRef = await addDoc(colRef, asset);
+    return { id: docRef.id, ...asset } as PortfolioAsset;
+};
+
+export const updatePortfolioAssetForUser = async (userId: string, id: string, asset: Partial<PortfolioAsset>): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'portfolio', id);
+    await updateDoc(docRef, asset);
+};
+
+export const deletePortfolioAssetForUser = async (userId: string, id: string): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'portfolio', id);
+    await deleteDoc(docRef);
 };

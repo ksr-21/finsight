@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Parser from 'rss-parser';
 import {
   NewspaperIcon,
   SearchIcon,
@@ -66,7 +67,16 @@ const MOCK_NEWS: NewsItem[] = [
   }
 ];
 
+const NEWS_SOURCES = [
+  { name: 'BBC Business', url: 'http://feeds.bbci.co.uk/news/business/rss.xml', defaultCategory: 'Global' },
+  { name: 'CNN Business', url: 'http://rss.cnn.com/rss/money_latest.rss', defaultCategory: 'Economy' },
+  { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex', defaultCategory: 'Markets' },
+  { name: 'Google News Finance', url: 'https://news.google.com/rss/search?q=finance+markets+crypto+startups&hl=en-US&gl=US&ceid=US:en', defaultCategory: 'General' }
+];
+
 const CATEGORIES = ['All', 'Markets', 'Economy', 'Technology', 'Crypto', 'Startups', 'Global', 'General'];
+
+const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
 const News: React.FC = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -79,10 +89,59 @@ const News: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/news');
-      if (!response.ok) throw new Error('Failed to fetch news');
-      const data = await response.json();
-      setNews(data);
+
+      const parser = new Parser();
+      const feedPromises = NEWS_SOURCES.map(async (source) => {
+        try {
+          // Using CORS proxy to fetch RSS feeds client-side
+          const response = await fetch(`${CORS_PROXY}${encodeURIComponent(source.url)}`);
+          if (!response.ok) throw new Error('Proxy failed');
+          const xml = await response.text();
+          const feed = await parser.parseString(xml);
+
+          return feed.items.map(item => ({
+            title: item.title || '',
+            link: item.link || '',
+            pubDate: item.pubDate || new Date().toISOString(),
+            content: item.contentSnippet || item.content || '',
+            source: source.name,
+            category: source.defaultCategory,
+            guid: item.guid || item.link || Math.random().toString()
+          }));
+        } catch (error) {
+          console.error(`Error fetching feed from ${source.name}:`, error);
+          return [];
+        }
+      });
+
+      const results = await Promise.all(feedPromises);
+      let allNews = results.flat();
+
+      if (allNews.length === 0) {
+          throw new Error('No news found');
+      }
+
+      allNews.sort((a, b) => {
+        return new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime();
+      });
+
+      allNews = allNews.map(item => {
+        const text = (item.title + ' ' + (item.content || '')).toLowerCase();
+        if (text.includes('crypto') || text.includes('bitcoin') || text.includes('ethereum') || text.includes('blockchain')) {
+          item.category = 'Crypto';
+        } else if (text.includes('startup') || text.includes('venture capital') || text.includes('funding round')) {
+          item.category = 'Startups';
+        } else if (text.includes('tech') || text.includes('apple') || text.includes('google') || text.includes('ai ')) {
+          item.category = 'Technology';
+        } else if (text.includes('market') || text.includes('stock') || text.includes('trading')) {
+          item.category = 'Markets';
+        } else if (text.includes('economy') || text.includes('inflation') || text.includes('fed ') || text.includes('interest rate')) {
+          item.category = 'Economy';
+        }
+        return item;
+      });
+
+      setNews(allNews);
     } catch (err) {
       console.warn('Could not fetch live news, falling back to mock news data:', err);
       setNews(MOCK_NEWS);
@@ -104,7 +163,6 @@ const News: React.FC = () => {
   }, [news, searchQuery, selectedCategory]);
 
   const breakingNews = useMemo(() => {
-    // Treat any news from the last 2 hours as "Breaking" or just take the first few
     return news.slice(0, 3);
   }, [news]);
 
