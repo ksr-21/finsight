@@ -1,41 +1,74 @@
 import { Transaction, Category } from "../types";
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_MODEL = "llama-3.3-70b-versatile"; 
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-const callGroq = async (prompt: string, isJson = false) => {
-  if (!GROQ_API_KEY) {
-    throw new Error("AI_CONFIG_ERROR: Groq API key is missing");
+const GROQ_MODEL = "llama-3.3-70b-versatile"; 
+const OPENROUTER_MODEL = "google/gemini-2.0-flash-001";
+
+const commonFetch = async (url: string, apiKey: string, body: any, providerName: string) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      ...(providerName === 'OpenRouter' ? {
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "FinSight AI",
+      } : {})
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`${providerName} API error: ${response.status} ${errorData.error?.message || response.statusText}`);
   }
 
+  const data = await response.json();
+  if (!data.choices || data.choices.length === 0) {
+    throw new Error(`Invalid response from ${providerName}: No choices returned`);
+  }
+  return data.choices[0].message.content;
+};
+
+const callGroq = async (prompt: string, isJson = false) => {
+  if (!GROQ_API_KEY || GROQ_API_KEY === 'your_groq_api_key_here') {
+    throw new Error("AI_CONFIG_ERROR: Groq API key is missing or invalid");
+  }
+
+  return commonFetch("https://api.groq.com/openai/v1/chat/completions", GROQ_API_KEY, {
+    model: GROQ_MODEL,
+    messages: [{ role: "user", content: prompt }],
+    response_format: isJson ? { type: "json_object" } : undefined,
+    temperature: 0.3,
+  }, 'Groq');
+};
+
+const callOpenRouter = async (prompt: string, isJson = false) => {
+  if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key_here') {
+    throw new Error("AI_CONFIG_ERROR: OpenRouter API key is missing or invalid");
+  }
+
+  return commonFetch("https://openrouter.ai/api/v1/chat/completions", OPENROUTER_API_KEY, {
+    model: OPENROUTER_MODEL,
+    messages: [{ role: "user", content: prompt }],
+    response_format: isJson ? { type: "json_object" } : undefined,
+    temperature: 0.3,
+  }, 'OpenRouter');
+};
+
+const callAI = async (prompt: string, isJson = false) => {
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [{ role: "user", content: prompt }],
-        response_format: isJson ? { type: "json_object" } : undefined,
-        temperature: 0.3,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Groq API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+    return await callGroq(prompt, isJson);
+  } catch (groqError: any) {
+    console.warn("Groq failed, trying OpenRouter...", groqError.message);
+    try {
+      return await callOpenRouter(prompt, isJson);
+    } catch (orError: any) {
+      console.error("All AI providers failed");
+      throw orError;
     }
-
-    const data = await response.json();
-    if (!data.choices || data.choices.length === 0) {
-      throw new Error("Invalid response from Groq");
-    }
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error("AI request failed:", error);
-    throw error;
   }
 };
 
@@ -47,7 +80,7 @@ export const aiService = {
     Return the response as a raw string of just the category name. Do not include markdown or punctuation.`;
 
     try {
-      const text = await callGroq(prompt);
+      const text = await callAI(prompt);
       const category = text.trim() as Category;
       return Object.values(Category).includes(category) ? category : Category.OTHER;
     } catch (error) {
@@ -66,7 +99,7 @@ export const aiService = {
     { "insights": ["Observation 1", "Observation 2", "Observation 3"] }`;
 
     try {
-      const text = await callGroq(prompt, true);
+      const text = await callAI(prompt, true);
       const data = JSON.parse(text);
       return data.insights || ["Keep tracking your expenses to get personalized insights.", "Consider setting up a budget for better control.", "You're doing great! Keep it up."];
     } catch (error) {
@@ -76,7 +109,19 @@ export const aiService = {
 
   // Chatbot response
   getChatResponse: async (message: string, context: { transactions: Transaction[], balance: number }): Promise<string> => {
-    const prompt = `You are FinSight AI, a professional and friendly financial assistant chatbot. Your goal is to help users resolve finance-related issues, offer budgeting advice, explain financial concepts, analyze spending patterns, and provide guidance on investments, debt management, and savings.
+    const platformContext = `
+    Platform Features (FinSight AI):
+    - Net Worth: Calculated as Cash Balance (Income - Expenses) + Portfolio Value.
+    - Survival Runway (Stress Test): Days you can survive without income. Calculation: Current Liquidity / Monthly Burn Rate.
+    - Financial Health Score: Weighted average of Savings, Spending, Investment, and Emergency Fund scores.
+    - Upcoming Bills: Tracking of unpaid bills.
+    - Portfolio Tracking: Stocks, Crypto, and Mutual Funds.
+    - Smart Budgets: Category-based spending limits.
+    `;
+
+    const prompt = `You are FinSight AI, a professional and friendly financial assistant chatbot.
+
+    ${platformContext}
     
     User Context:
     - Current Balance: ${context.balance}
@@ -84,9 +129,10 @@ export const aiService = {
     
     User Question: "${message}"
     
-    Provide a clear, helpful, actionable, and concise response. Use formatting (bullet points, bold text) where helpful. If they ask about issues like overspending, offer suggestions.`;
+    If the user asks about the platform, features, or how metrics are calculated, refer to the Platform Features provided above.
+    Provide a clear, helpful, actionable, and concise response. Use formatting (bullet points, bold text) where helpful.`;
 
-    return await callGroq(prompt);
+    return await callAI(prompt);
   },
 
   // Predict future expenses
@@ -103,7 +149,7 @@ export const aiService = {
     Return the response in JSON format with these keys: "nextWeek" (number), "nextMonth" (number), "reasoning" (string).`;
 
     try {
-      const text = await callGroq(prompt, true);
+      const text = await callAI(prompt, true);
       return JSON.parse(text);
     } catch (error) {
       // Fallback calculation
@@ -118,4 +164,3 @@ export const aiService = {
     }
   }
 };
-
