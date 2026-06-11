@@ -43,6 +43,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [isManagingCategories, setIsManagingCategories] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+  const [isSplit, setIsSplit] = useState(false);
+  const [splitCount, setSplitCount] = useState(2);
+  const [splitWith, setSplitWith] = useState<string[]>(['']);
 
   const categories = categoryPreferences[type];
 
@@ -56,6 +59,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       setDate(initialData.date);
       setType(initialData.type);
       setCategory(initialData.category);
+      setIsSplit(initialData.isSplit || false);
+      setSplitCount(initialData.splitCount || 2);
+      setSplitWith(initialData.splitWith || ['']);
       return;
     }
 
@@ -132,6 +138,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       type,
       category,
       date,
+      isSplit,
+      splitCount,
+      splitWith: isSplit ? splitWith.filter(s => s.trim() !== '') : [],
     });
   };
 
@@ -281,7 +290,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           <span>
             More options
             <span className="ml-2 text-xs font-normal text-text-secondary dark:text-gray-500">
-              Description & date
+              Split bill, Description & date
             </span>
           </span>
           <ChevronDownIcon
@@ -291,6 +300,82 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
         {showMoreOptions && (
           <div className="space-y-4 border-t border-gray-100 px-5 pb-5 pt-4 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">
+                Split this bill
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsSplit(!isSplit)}
+                className={`w-10 h-6 rounded-full relative transition-colors ${isSplit ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isSplit ? 'translate-x-5' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {isSplit && (
+              <div className="space-y-4 p-4 bg-white/50 dark:bg-black/20 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-mono uppercase text-gray-500 mb-1 block">Split between</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="2"
+                        value={splitCount}
+                        onChange={(e) => setSplitCount(parseInt(e.target.value))}
+                        className="w-16 bg-white dark:bg-gray-800 border-none rounded-lg px-2 py-1 text-sm font-bold"
+                      />
+                      <span className="text-xs text-gray-400">people</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <label className="text-[10px] font-mono uppercase text-gray-500 mb-1 block">Each pays</label>
+                    <p className="text-sm font-bold text-indigo-600">
+                      {CURRENCY_SYMBOLS[currency]}{(parseFloat(amount || '0') / (splitCount || 1)).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono uppercase text-gray-500 block">Split with (Emails/Names)</label>
+                  {splitWith.map((sw, index) => (
+                    <div key={index} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={sw}
+                        onChange={(e) => {
+                          const next = [...splitWith];
+                          next[index] = e.target.value;
+                          setSplitWith(next);
+                        }}
+                        placeholder="Friend's email or name"
+                        className="flex-1 bg-white dark:bg-gray-800 border-none rounded-lg px-3 py-2 text-xs"
+                      />
+                      {index === splitWith.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setSplitWith([...splitWith, ''])}
+                          className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"
+                        >
+                          <PlusIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                      {splitWith.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setSplitWith(splitWith.filter((_, i) => i !== index))}
+                          className="p-2 bg-rose-50 text-rose-600 rounded-lg"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">
                 Description

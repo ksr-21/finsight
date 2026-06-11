@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Transaction, TransactionType, Category, Currency, CURRENCY_SYMBOLS, User } from '../types';
 import { api } from '../services/api';
-import { PlusIcon, SearchIcon, FilterIcon, TrashIcon, EditIcon, ArrowUpIcon, ArrowDownIcon } from '../components/icons';
+import { PlusIcon, SearchIcon, FilterIcon, TrashIcon, EditIcon, ArrowUpIcon, ArrowDownIcon, ChartPieIcon } from '../components/icons';
 import TransactionForm from '../components/TransactionForm';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface TransactionsPageProps {
   currency: Currency;
   user: User;
+  transactions?: Transaction[];
 }
 
-const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user }) => {
+const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, transactions: propTransactions }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -20,12 +22,18 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user }) =
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
 
   const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   useEffect(() => {
-    fetchTransactions();
-  }, []);
+    if (propTransactions) {
+      setTransactions(propTransactions);
+      setLoading(false);
+    } else {
+      fetchTransactions();
+    }
+  }, [propTransactions]);
 
   const fetchTransactions = async () => {
     try {
@@ -86,6 +94,76 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user }) =
     ...Array.from(new Set([...Object.values(Category), ...transactions.map(t => t.category)])),
   ];
 
+  // Analytics Data
+  const chartData = useMemo(() => {
+    if (analyticsPeriod === 'weekly') {
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return d.toISOString().split('T')[0];
+      }).reverse();
+
+      return last7Days.map(date => {
+        const dayTotal = transactions
+          .filter(t => t.date === date && t.type === TransactionType.EXPENSE)
+          .reduce((sum, t) => sum + t.amount, 0);
+        return {
+          label: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+          amount: dayTotal
+        };
+      });
+    } else if (analyticsPeriod === 'monthly') {
+      // Last 30 days grouped by week or just last 12 months?
+      // User said "track there weekly, monthly, yearly expences"
+      // Let's do last 6 months for monthly view
+      const months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        return { month: d.getMonth(), year: d.getFullYear() };
+      }).reverse();
+
+      return months.map(({ month, year }) => {
+        const monthTotal = transactions
+          .filter(t => {
+            const d = new Date(t.date);
+            return d.getMonth() === month && d.getFullYear() === year && t.type === TransactionType.EXPENSE;
+          })
+          .reduce((sum, t) => sum + t.amount, 0);
+        return {
+          label: new Date(year, month).toLocaleDateString('en-US', { month: 'short' }),
+          amount: monthTotal
+        };
+      });
+    } else {
+      // Yearly - last 5 years
+      const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).reverse();
+      return years.map(year => {
+        const yearTotal = transactions
+          .filter(t => {
+            const d = new Date(t.date);
+            return d.getFullYear() === year && t.type === TransactionType.EXPENSE;
+          })
+          .reduce((sum, t) => sum + t.amount, 0);
+        return {
+          label: String(year),
+          amount: yearTotal
+        };
+      });
+    }
+  }, [transactions, analyticsPeriod]);
+
+  const categoryData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    transactions
+      .filter(t => t.type === TransactionType.EXPENSE)
+      .forEach(t => {
+        counts[t.category] = (counts[t.category] || 0) + t.amount;
+      });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [transactions]);
+
+  const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
@@ -112,6 +190,83 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user }) =
             <PlusIcon className="w-5 h-5" />
             Add Transaction
           </button>
+        </div>
+      </div>
+
+      {/* Analytics Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+            <h3 className="text-lg font-bold text-text-primary dark:text-white capitalize">{analyticsPeriod} Expense Trend</h3>
+            <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl w-fit">
+              {(['weekly', 'monthly', 'yearly'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setAnalyticsPeriod(p)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                    analyticsPeriod === p
+                      ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                      : 'text-text-secondary dark:text-gray-400 hover:text-indigo-600'
+                  }`}
+                >
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9CA3AF'}} />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => [`${currencySymbol}${value.toLocaleString()}`, 'Spent']}
+                />
+                <Area type="monotone" dataKey="amount" stroke="#4F46E5" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col">
+          <h3 className="text-lg font-bold text-text-primary dark:text-white mb-6">Category Mix</h3>
+          <div className="flex-1 h-[200px]">
+             <ResponsiveContainer width="100%" height="100%">
+               <PieChart>
+                 <Pie
+                  data={categoryData}
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                 >
+                   {categoryData.map((entry, index) => (
+                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                   ))}
+                 </Pie>
+                 <Tooltip />
+               </PieChart>
+             </ResponsiveContainer>
+          </div>
+          <div className="mt-4 space-y-2">
+            {categoryData.slice(0, 3).map((item, i) => (
+              <div key={item.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  <span className="text-text-secondary dark:text-gray-400 font-medium">{item.name}</span>
+                </div>
+                <span className="font-bold text-text-primary dark:text-white">{currencySymbol}{item.value.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
