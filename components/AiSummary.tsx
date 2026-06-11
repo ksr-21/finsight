@@ -73,7 +73,7 @@ const AiSummary: React.FC<AiSummaryProps> = ({ transactions, budgets }) => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.15, type: "spring", stiffness: 100 }}
-                className="bg-white/10 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-500 group/card relative overflow-hidden"
+                className="bg-white/20 dark:bg-white/10 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 hover:bg-white/30 dark:hover:bg-white/20 hover:border-white/30 transition-all duration-500 group/card relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/card:opacity-30 transition-opacity">
                   {index === 0 ? <TrendingUpIcon className="w-12 h-12" /> : index === 1 ? <WalletIcon className="w-12 h-12" /> : <SparklesIcon className="w-12 h-12" />}

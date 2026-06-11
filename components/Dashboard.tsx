@@ -1,5 +1,6 @@
 
 import React, { useMemo, useEffect, useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Transaction, TransactionType, Currency, CURRENCY_SYMBOLS, Bill, Budget, FinancialHealthScore, User, PortfolioAsset } from '../types';
 import CategoryPieChart from './CategoryPieChart';
@@ -9,7 +10,7 @@ import BillsWidget from './BillsWidget';
 import BudgetProgress from './BudgetProgress';
 import RecentTransactions from './RecentTransactions';
 import AiSummary from './AiSummary';
-import { ArrowUpIcon, ArrowDownIcon, ScaleIcon, WalletIcon, SparklesIcon } from './icons';
+import { ArrowUpIcon, ArrowDownIcon, ScaleIcon, WalletIcon, SparklesIcon, PlusIcon } from './icons';
 import { api } from '../services/api';
 
 interface DashboardProps {
@@ -90,14 +91,23 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
           color="indigo"
           delay={0.2}
         />
-        <StatCard 
-          title="Net Worth" 
-          amount={netWorth} 
-          icon={<WalletIcon className="h-6 w-6" />} 
-          currency={currency} 
-          color="indigo"
-          delay={0.3}
-        />
+        <div className="relative group/card">
+          <StatCard
+            title="Net Worth"
+            amount={netWorth}
+            icon={<WalletIcon className="h-6 w-6" />}
+            currency={currency}
+            color="indigo"
+            delay={0.3}
+          />
+          <NavLink
+            to="/budgets"
+            className="absolute top-6 right-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/card:opacity-100 transition-opacity z-20"
+            title="Manage Assets"
+          >
+            <SparklesIcon className="w-4 h-4" />
+          </NavLink>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -204,12 +214,19 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
         </motion.div>
 
         <motion.div 
-          className="lg:col-span-4"
+          className="lg:col-span-4 relative group/card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
           <BillsWidget bills={bills} currency={currency} />
+          <NavLink
+            to="/budgets"
+            className="absolute top-6 right-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/card:opacity-100 transition-opacity z-20"
+            title="Manage Bills"
+          >
+            <PlusIcon className="w-4 h-4" />
+          </NavLink>
         </motion.div>
       </div>
     </div>
