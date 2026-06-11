@@ -346,9 +346,51 @@ app.delete('/api/goals/:id', authenticateToken, async (req: any, res) => {
 app.get('/api/bills', authenticateToken, async (req: any, res) => {
   try {
     const bills = await (Bill as any).find({ userId: req.user.userId });
-    res.json(bills.map(b => ({ ...b.toObject(), id: b._id })));
+    res.json(bills.map((b: any) => ({ ...b.toObject(), id: b._id })));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch bills' });
+  }
+});
+
+app.post('/api/bills', authenticateToken, async (req: any, res) => {
+  try {
+    const newBill = new Bill({ ...req.body, userId: req.user.userId });
+    await newBill.save();
+    res.status(201).json({ ...newBill.toObject(), id: newBill._id });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to create bill', details: error.message });
+  }
+});
+
+app.put('/api/bills/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const updatedBill = await (Bill as any).findOneAndUpdate(
+      { _id: id, userId: req.user.userId },
+      req.body,
+      { new: true }
+    );
+    if (updatedBill) {
+      res.json({ ...updatedBill.toObject(), id: updatedBill._id });
+    } else {
+      res.status(404).json({ error: 'Bill not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update bill' });
+  }
+});
+
+app.delete('/api/bills/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const result = await (Bill as any).findOneAndDelete({ _id: id, userId: req.user.userId });
+    if (result) {
+      res.status(204).send();
+    } else {
+      res.status(404).json({ error: 'Bill not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete bill' });
   }
 });
 
@@ -356,9 +398,51 @@ app.get('/api/bills', authenticateToken, async (req: any, res) => {
 app.get('/api/portfolio', authenticateToken, async (req: any, res) => {
   try {
     const portfolio = await (PortfolioAsset as any).find({ userId: req.user.userId });
-    res.json(portfolio.map(p => ({ ...p.toObject(), id: p._id })));
+    res.json(portfolio.map((p: any) => ({ ...p.toObject(), id: p._id })));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch portfolio' });
+  }
+});
+
+app.post('/api/portfolio', authenticateToken, async (req: any, res) => {
+  try {
+    const newAsset = new PortfolioAsset({ ...req.body, userId: req.user.userId });
+    await newAsset.save();
+    res.status(201).json({ ...newAsset.toObject(), id: newAsset._id });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to create asset', details: error.message });
+  }
+});
+
+app.put('/api/portfolio/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const updatedAsset = await (PortfolioAsset as any).findOneAndUpdate(
+      { _id: id, userId: req.user.userId },
+      req.body,
+      { new: true }
+    );
+    if (updatedAsset) {
+      res.json({ ...updatedAsset.toObject(), id: updatedAsset._id });
+    } else {
+      res.status(404).json({ error: 'Asset not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update asset' });
+  }
+});
+
+app.delete('/api/portfolio/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const result = await (PortfolioAsset as any).findOneAndDelete({ _id: id, userId: req.user.userId });
+    if (result) {
+      res.status(204).send();
+    } else {
+      res.status(404).json({ error: 'Asset not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete asset' });
   }
 });
 

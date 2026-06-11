@@ -105,16 +105,16 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-80px)] overflow-hidden rounded-3xl bg-[#050505] text-white p-6 md:p-12">
+    <div className="relative min-h-[calc(100vh-80px)] overflow-hidden rounded-3xl bg-background text-text-primary p-6 md:p-12">
       {/* Immersive Background (Recipe 7) */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-500/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[100px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-500/10 blur-[120px] opacity-50 dark:opacity-100" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[100px] opacity-50 dark:opacity-100" />
       </div>
 
       <div className="relative z-10 flex flex-col h-full space-y-12">
         {/* Navigation Tabs (Recipe 4) */}
-        <div className="flex flex-wrap items-center gap-4 p-2 bg-white/5 border border-white/10 rounded-2xl w-fit">
+        <div className="flex flex-wrap items-center gap-4 p-2 bg-card/50 border border-gray-200 dark:border-white/10 rounded-2xl w-fit">
           {[
             { id: 'projection', label: 'Projection', icon: TrendingUpIcon },
             { id: 'fire', label: 'FIRE Plan', icon: SparklesIcon },
@@ -153,15 +153,15 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
                 >
-                  <span className="text-indigo-400 font-mono text-[10px] tracking-[0.4em] uppercase mb-4 block">Trajectory Engine v2.0</span>
-                  <h1 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.85] uppercase mb-6">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-mono text-[10px] tracking-[0.4em] uppercase mb-4 block">Trajectory Engine v2.0</span>
+                  <h1 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.85] uppercase mb-6 text-text-primary">
                     Wealth<br />Horizon
                   </h1>
                   <div className="h-1 w-20 bg-indigo-500 mb-6" />
                 </motion.div>
 
                 <motion.div 
-                  className="space-y-8 bg-[#111] border border-white/5 p-8 rounded-2xl shadow-2xl"
+                  className="space-y-8 bg-card border border-gray-100 dark:border-white/5 p-8 rounded-2xl shadow-2xl"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
@@ -193,7 +193,7 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <label className="text-[10px] font-mono uppercase tracking-widest text-gray-500">Time Window</label>
-                      <span className="text-white font-mono text-lg">{years} Years</span>
+                      <span className="text-text-primary font-mono text-lg">{years} Years</span>
                     </div>
                     <input 
                       type="range" min="1" max="40" step="1"
@@ -227,11 +227,11 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
                           <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                      <XAxis dataKey="year" stroke="#ffffff20" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#ffffff20" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#88888822" vertical={false} />
+                      <XAxis dataKey="year" stroke="#888" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
                       <Tooltip 
-                        contentStyle={{ backgroundColor: '#000', border: '1px solid #ffffff10', borderRadius: '8px', fontFamily: 'monospace' }}
+                        contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid #88888822', borderRadius: '8px', fontFamily: 'monospace', color: 'var(--text-primary)' }}
                         itemStyle={{ color: '#6366f1' }}
                       />
                       <Area type="monotone" dataKey="balance" stroke="#6366f1" strokeWidth={2} fill="url(#colorBalance)" />
@@ -247,10 +247,10 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 + (i * 0.1) }}
-                      className={`p-4 rounded-xl border ${m.achieved ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/5 border-white/10'} flex flex-col items-center text-center`}
+                      className={`p-4 rounded-xl border ${m.achieved ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-card border-gray-100 dark:bg-white/5 dark:border-white/10'} flex flex-col items-center text-center`}
                     >
                       <div className="text-[8px] font-mono uppercase tracking-widest text-gray-500 mb-2">Target</div>
-                      <div className={`text-sm font-bold font-mono mb-2 ${m.achieved ? 'text-emerald-400' : 'text-white'}`}>
+                      <div className={`text-sm font-bold font-mono mb-2 ${m.achieved ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'}`}>
                         {currency} {(m.target/1000).toFixed(0)}k
                       </div>
                       {m.achieved ? (
@@ -267,13 +267,13 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
                 </div>
 
                 {/* Hardware Status Bar (Recipe 3) */}
-                <div className="flex items-center justify-between p-4 bg-[#111] rounded-lg border border-white/5 font-mono text-[10px] text-gray-500">
+                <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-gray-100 dark:border-white/5 font-mono text-[10px] text-gray-500">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       <span>SYSTEM ACTIVE</span>
                     </div>
-                    <div className="h-4 w-px bg-white/10" />
+                    <div className="h-4 w-px bg-gray-200 dark:bg-white/10" />
                     <span>DATA SOURCE: LOCAL_LEDGER</span>
                   </div>
                   <div className="hidden md:block">

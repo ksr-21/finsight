@@ -316,6 +316,35 @@ export const api = {
     }
   },
 
+  addBill: async (userId: string, bill: Omit<Bill, 'id'>): Promise<Bill> => {
+    if (userId === 'guest_user') {
+      const newBill = { ...bill, id: Math.random().toString(36).substr(2, 9) } as Bill;
+      const current = getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+      setLocal(userId, STORAGE_KEYS.BILLS, [...current, newBill]);
+      return newBill;
+    }
+    return await firestore.addBillForUser(userId, bill);
+  },
+
+  updateBill: async (userId: string, id: string, bill: Partial<Bill>): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+      const updated = current.map(item => item.id === id ? { ...item, ...bill } : item);
+      setLocal(userId, STORAGE_KEYS.BILLS, updated);
+      return;
+    }
+    await firestore.updateBillForUser(userId, id, bill);
+  },
+
+  deleteBill: async (userId: string, id: string): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+      setLocal(userId, STORAGE_KEYS.BILLS, current.filter(item => item.id !== id));
+      return;
+    }
+    await firestore.deleteBillForUser(userId, id);
+  },
+
   // Portfolio
   getPortfolio: async (userId: string): Promise<PortfolioAsset[]> => {
     if (userId === 'guest_user') {
@@ -326,5 +355,34 @@ export const api = {
     } catch (e) {
       return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
     }
+  },
+
+  addPortfolioAsset: async (userId: string, asset: Omit<PortfolioAsset, 'id'>): Promise<PortfolioAsset> => {
+    if (userId === 'guest_user') {
+      const newAsset = { ...asset, id: Math.random().toString(36).substr(2, 9) } as PortfolioAsset;
+      const current = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, [...current, newAsset]);
+      return newAsset;
+    }
+    return await firestore.addPortfolioAssetForUser(userId, asset);
+  },
+
+  updatePortfolioAsset: async (userId: string, id: string, asset: Partial<PortfolioAsset>): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+      const updated = current.map(item => item.id === id ? { ...item, ...asset } : item);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, updated);
+      return;
+    }
+    await firestore.updatePortfolioAssetForUser(userId, id, asset);
+  },
+
+  deletePortfolioAsset: async (userId: string, id: string): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, current.filter(item => item.id !== id));
+      return;
+    }
+    await firestore.deletePortfolioAssetForUser(userId, id);
   }
 };

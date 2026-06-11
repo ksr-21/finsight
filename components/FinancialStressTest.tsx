@@ -49,16 +49,16 @@ const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency
   }, [transactions, rentHike, jobLoss, emergencyExpense]);
 
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-[2rem] p-8 overflow-hidden relative group">
+    <div className="bg-card border border-gray-100 dark:border-white/5 rounded-[2rem] p-8 overflow-hidden relative group">
       {/* Grid Background Effect */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-           style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none dark:opacity-[0.03] opacity-[0.05]"
+           style={{ backgroundImage: 'radial-gradient(var(--text-primary) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
       <div className="relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <span className="text-indigo-500 font-mono text-[10px] tracking-[0.3em] uppercase mb-1 block">Stress Test Module</span>
-            <h3 className="text-2xl font-bold text-white tracking-tight uppercase italic">Survival Runway</h3>
+            <span className="text-indigo-600 dark:text-indigo-500 font-mono text-[10px] tracking-[0.3em] uppercase mb-1 block">Stress Test Module</span>
+            <h3 className="text-2xl font-bold text-text-primary tracking-tight uppercase italic">Survival Runway</h3>
           </div>
           
           <div className="flex gap-2">
@@ -74,7 +74,7 @@ const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency
             <div className="relative flex items-center justify-center h-64">
               {/* Circular Progress (Hardware Style) */}
               <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#ffffff05" strokeWidth="2" />
+                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeOpacity="0.05" strokeWidth="2" />
                 <motion.circle 
                   cx="50" cy="50" r="45" fill="none" 
                   stroke={stats.isCritical ? "#f43f5e" : "#6366f1"} 
@@ -91,7 +91,7 @@ const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency
                   key={String(stats.runwayDays)}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className={`text-7xl font-bold font-mono tracking-tighter ${stats.isCritical ? 'text-rose-500' : 'text-white'}`}
+                  className={`text-7xl font-bold font-mono tracking-tighter ${stats.isCritical ? 'text-rose-500' : 'text-text-primary'}`}
                 >
                   {stats.runwayDays}
                 </motion.div>
@@ -129,7 +129,7 @@ const StressorToggle = ({ active, onClick, label }: { active: boolean, onClick: 
     className={`px-3 py-1.5 rounded-lg font-mono text-[9px] uppercase tracking-wider transition-all duration-300 border ${
       active 
         ? 'bg-rose-500 border-rose-400 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]' 
-        : 'bg-white/5 border-white/10 text-gray-500 hover:text-white hover:border-white/20'
+        : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-text-secondary hover:text-text-primary hover:border-gray-300 dark:hover:border-white/20'
     }`}
   >
     {label}
@@ -138,16 +138,16 @@ const StressorToggle = ({ active, onClick, label }: { active: boolean, onClick: 
 
 const DataRow = ({ label, value, color }: { label: string, value: string, color: string }) => {
   const colorClasses: Record<string, string> = {
-    rose: 'text-rose-400',
-    indigo: 'text-indigo-400',
-    emerald: 'text-emerald-400',
-    amber: 'text-amber-400'
+    rose: 'text-rose-500 dark:text-rose-400',
+    indigo: 'text-indigo-600 dark:text-indigo-400',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    amber: 'text-amber-600 dark:text-amber-400'
   };
   
   return (
-    <div className="flex justify-between items-end border-b border-white/5 pb-2 group/row">
-      <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest group-hover/row:text-gray-300 transition-colors">{label}</span>
-      <span className={`text-lg font-bold font-mono tracking-tight ${colorClasses[color] || 'text-white'}`}>{value}</span>
+    <div className="flex justify-between items-end border-b border-gray-100 dark:border-white/5 pb-2 group/row">
+      <span className="text-[10px] font-mono text-text-secondary uppercase tracking-widest group-hover/row:text-text-primary transition-colors">{label}</span>
+      <span className={`text-lg font-bold font-mono tracking-tight ${colorClasses[color] || 'text-text-primary'}`}>{value}</span>
     </div>
   );
 };

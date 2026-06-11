@@ -251,14 +251,14 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-gray-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden"
+            className="bg-card border border-gray-100 dark:border-transparent dark:bg-gray-900 rounded-[2.5rem] p-8 text-text-primary dark:text-white relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <SparklesIcon className="w-24 h-24" />
             </div>
             
             <h3 className="text-lg font-bold mb-6 flex items-center gap-3">
-              <SparklesIcon className="w-5 h-5 text-indigo-400" />
+              <SparklesIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               Smart Tips
             </h3>
 
@@ -271,10 +271,10 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
                   transition={{ delay: idx * 0.1 }}
                   className="flex gap-4 group"
                 >
-                  <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-bold shrink-0 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-bold shrink-0 group-hover:bg-indigo-500 group-hover:text-white transition-all">
                     {idx + 1}
                   </div>
-                  <p className="text-sm text-gray-400 group-hover:text-gray-200 transition-colors leading-relaxed">
+                  <p className="text-sm text-text-secondary dark:text-gray-400 group-hover:text-text-primary dark:group-hover:text-gray-200 transition-colors leading-relaxed">
                     {insight}
                   </p>
                 </motion.div>
