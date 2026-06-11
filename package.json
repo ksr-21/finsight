@@ -20,6 +20,7 @@
     "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "firebase": "^12.5.0",
+    "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.3",
     "morgan": "^1.10.1",
@@ -28,8 +29,8 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.2",
     "recharts": "^3.3.0",
-    "serverless-http": "^3.0.0",
     "rss-parser": "^3.13.0",
+    "serverless-http": "^3.0.0",
     "tsx": "^4.21.0"
   },
   "devDependencies": {

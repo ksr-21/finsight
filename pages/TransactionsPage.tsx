@@ -414,6 +414,16 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, tra
                             Split {t.splitCount}x
                           </span>
                         )}
+                        {t.upiId && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[8px] font-mono font-bold uppercase tracking-widest border border-emerald-500/20">
+                            UPI
+                          </span>
+                        )}
+                        {t.paymentMode === 'Cash' && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 text-[8px] font-mono font-bold uppercase tracking-widest border border-amber-500/20">
+                            Cash
+                          </span>
+                        )}
                       </div>
                       {t.notes && <p className="text-xs text-text-secondary dark:text-gray-500 mt-1">{t.notes}</p>}
                     </td>
@@ -422,7 +432,13 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, tra
                         {t.category}
                       </span>
                     </td>
-                    <td className={`px-8 py-5 text-sm font-bold font-mono text-right ${t.type === TransactionType.INCOME ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    <td className={`px-8 py-5 text-sm font-bold font-mono text-right ${
+                      t.type === TransactionType.INCOME
+                        ? 'text-emerald-500'
+                        : t.upiId
+                          ? 'text-indigo-500 dark:text-indigo-400'
+                          : 'text-rose-500'
+                    }`}>
                       {t.type === TransactionType.INCOME ? '+' : '-'}{currencySymbol}{t.amount.toLocaleString()}
                     </td>
                     <td className="px-8 py-5 text-right">

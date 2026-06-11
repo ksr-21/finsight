@@ -1,4 +1,4 @@
-import { Transaction, Budget, Goal, Bill, PortfolioAsset, FinancialHealthScore } from '../types';
+import { Transaction, Budget, Goal, Bill, Debt, PortfolioAsset, FinancialHealthScore } from '../types';
 import * as firestore from './firestoreService';
 
 const STORAGE_KEYS = {
@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   GOALS: 'goals',
   BILLS: 'bills',
   PORTFOLIO: 'portfolio',
+  DEBTS: 'debts',
 };
 
 // Helper for user-scoped keys
@@ -384,5 +385,46 @@ export const api = {
       return;
     }
     await firestore.deletePortfolioAssetForUser(userId, id);
+  },
+
+  // Debts
+  getDebts: async (userId: string): Promise<Debt[]> => {
+    if (userId === 'guest_user') {
+      return getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+    }
+    try {
+      return await firestore.getDebtsForUser(userId);
+    } catch (e) {
+      return getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+    }
+  },
+
+  addDebt: async (userId: string, debt: Omit<Debt, 'id'>): Promise<Debt> => {
+    if (userId === 'guest_user') {
+      const newDebt = { ...debt, id: Math.random().toString(36).substr(2, 9) } as Debt;
+      const current = getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+      setLocal(userId, STORAGE_KEYS.DEBTS, [...current, newDebt]);
+      return newDebt;
+    }
+    return await firestore.addDebtForUser(userId, debt);
+  },
+
+  updateDebt: async (userId: string, id: string, debt: Partial<Debt>): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+      const updated = current.map(item => item.id === id ? { ...item, ...debt } : item);
+      setLocal(userId, STORAGE_KEYS.DEBTS, updated);
+      return;
+    }
+    await firestore.updateDebtForUser(userId, id, debt);
+  },
+
+  deleteDebt: async (userId: string, id: string): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+      setLocal(userId, STORAGE_KEYS.DEBTS, current.filter(item => item.id !== id));
+      return;
+    }
+    await firestore.deleteDebtForUser(userId, id);
   }
 };

@@ -21,7 +21,7 @@ import {
     orderBy
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Transaction, Currency, Budget, Goal, Bill, PortfolioAsset } from '../types';
+import { Transaction, Currency, Budget, Goal, Bill, PortfolioAsset, Debt } from '../types';
 
 interface UserPreferences {
     isDarkMode: boolean;
@@ -244,5 +244,28 @@ export const updatePortfolioAssetForUser = async (userId: string, id: string, as
 
 export const deletePortfolioAssetForUser = async (userId: string, id: string): Promise<void> => {
     const docRef = doc(db, 'users', userId, 'portfolio', id);
+    await deleteDoc(docRef);
+};
+
+// Debts
+export const getDebtsForUser = async (userId: string): Promise<Debt[]> => {
+    const colRef = collection(db, 'users', userId, 'debts');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt));
+};
+
+export const addDebtForUser = async (userId: string, debt: Omit<Debt, 'id'>): Promise<Debt> => {
+    const colRef = collection(db, 'users', userId, 'debts');
+    const docRef = await addDoc(colRef, debt);
+    return { id: docRef.id, ...debt } as Debt;
+};
+
+export const updateDebtForUser = async (userId: string, id: string, debt: Partial<Debt>): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'debts', id);
+    await updateDoc(docRef, debt);
+};
+
+export const deleteDebtForUser = async (userId: string, id: string): Promise<void> => {
+    const docRef = doc(db, 'users', userId, 'debts', id);
     await deleteDoc(docRef);
 };
