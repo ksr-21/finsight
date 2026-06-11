@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Transaction, Currency, CURRENCY_SYMBOLS, TransactionType } from '../types';
-import { ArrowUpIcon, ArrowDownIcon } from './icons';
+import { ArrowUpIcon, ArrowDownIcon, WalletIcon } from './icons';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -31,7 +31,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, c
             >
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.type === TransactionType.INCOME ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400'}`}>
-                  {t.type === TransactionType.INCOME ? <ArrowUpIcon className="w-5 h-5" /> : <ArrowDownIcon className="w-5 h-5" />}
+                    {t.paymentMode === 'Cash' ? <WalletIcon className="w-5 h-5" /> : t.type === TransactionType.INCOME ? <ArrowUpIcon className="w-5 h-5" /> : <ArrowDownIcon className="w-5 h-5" />}
                 </div>
                 <div>
                   <p className="text-sm font-bold text-text-primary dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{t.description}</p>
@@ -46,7 +46,13 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, c
                 </div>
               </div>
               <div className="text-right">
-                <p className={`text-sm font-bold font-mono ${t.type === TransactionType.INCOME ? 'text-emerald-500' : 'text-rose-500'}`}>
+                <p className={`text-sm font-bold font-mono ${
+                  t.type === TransactionType.INCOME
+                    ? 'text-emerald-500'
+                    : t.upiId
+                      ? 'text-indigo-500 dark:text-indigo-400'
+                      : 'text-rose-500'
+                }`}>
                   {t.type === TransactionType.INCOME ? '+' : '-'}{currencySymbol}{t.amount.toLocaleString()}
                 </p>
                 <p className="text-[9px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">

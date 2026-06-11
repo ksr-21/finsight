@@ -7,6 +7,8 @@ const BillSchema = new mongoose.Schema({
   dueDate: { type: String, required: true },
   isPaid: { type: Boolean, default: false },
   category: { type: String, required: true },
+  paymentMode: { type: String, enum: ['Cash', 'Online'], default: 'Online' },
+  upiId: { type: String },
 }, { timestamps: true });
 
 export const Bill = mongoose.models.Bill || mongoose.model('Bill', BillSchema);

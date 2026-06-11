@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Bill, Category, Currency, CURRENCY_SYMBOLS } from '../types';
+import { Bill, Category, Currency, CURRENCY_SYMBOLS, PaymentMode } from '../types';
+import { SparklesIcon } from './icons';
+import QRScanner from './QRScanner';
 
 interface BillFormProps {
   onSubmit: (bill: Omit<Bill, 'id'>) => void;
@@ -13,6 +15,9 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
   const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState<Category>(Category.BILLS);
   const [isPaid, setIsPaid] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
+  const [showScanner, setShowScanner] = useState(false);
+  const [upiId, setUpiId] = useState('');
 
   useEffect(() => {
     if (initialData) {
@@ -32,13 +37,102 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
       amount: parseFloat(amount),
       dueDate,
       category,
-      isPaid
+      isPaid,
+      paymentMode,
+      upiId: paymentMode === 'Online' ? upiId : undefined
     });
+  };
+
+  const handleScanSuccess = (decodedText: string) => {
+    try {
+      const url = new URL(decodedText);
+      if (url.protocol === 'upi:') {
+        const params = new URLSearchParams(url.search);
+        const pa = params.get('pa');
+        const pn = params.get('pn');
+        const am = params.get('am');
+
+        if (pa) setUpiId(pa);
+        if (pn) setName(pn);
+        if (am) setAmount(am);
+
+        setPaymentMode('Online');
+        setShowScanner(false);
+      }
+    } catch (e) {
+      console.error("Invalid QR code", e);
+    }
+  };
+
+  const handlePayUPI = () => {
+    if (!amount || !upiId) return;
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name || 'Bill Payment')}&am=${amount}&cu=INR`;
+    window.location.href = upiUrl;
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {showScanner && (
+        <QRScanner
+          onScanSuccess={handleScanSuccess}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {paymentMode === 'Online' && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 py-3 rounded-xl font-bold text-sm border border-indigo-100 dark:border-indigo-500/20"
+          >
+            <SparklesIcon className="w-4 h-4" />
+            Scan QR to Pay
+          </button>
+        </div>
+      )}
+
       <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-xs font-mono text-text-secondary dark:text-gray-400 uppercase tracking-widest ml-1">Payment Mode</label>
+          <div className="grid grid-cols-2 gap-2 p-1 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl">
+            {(['Cash', 'Online'] as PaymentMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setPaymentMode(mode)}
+                className={`py-3 rounded-xl text-sm font-bold transition-all ${paymentMode === mode ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-text-secondary dark:text-gray-400'}`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {paymentMode === 'Online' && (
+          <div className="space-y-2">
+            <label className="text-xs font-mono text-text-secondary dark:text-gray-400 uppercase tracking-widest ml-1">Recipient UPI ID</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="example@upi"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                className="flex-1 px-5 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+              />
+              {upiId && amount && (
+                <button
+                  type="button"
+                  onClick={handlePayUPI}
+                  className="px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Pay Now
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2">
           <label className="text-xs font-mono text-text-secondary dark:text-gray-400 uppercase tracking-widest ml-1">Bill Name</label>
           <input

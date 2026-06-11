@@ -1,14 +1,15 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Bill, Currency, CURRENCY_SYMBOLS } from '../types';
-import { CalendarIcon, CheckCircleIcon, AlertCircleIcon } from './icons';
+import { CalendarIcon, CheckCircleIcon, AlertCircleIcon, SparklesIcon } from './icons';
 
 interface BillsWidgetProps {
   bills: Bill[];
   currency: Currency;
+  onSplitBill?: (bill: Bill) => void;
 }
 
-const BillsWidget: React.FC<BillsWidgetProps> = ({ bills, currency }) => {
+const BillsWidget: React.FC<BillsWidgetProps> = ({ bills, currency, onSplitBill }) => {
   const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   return (
@@ -45,13 +46,24 @@ const BillsWidget: React.FC<BillsWidgetProps> = ({ bills, currency }) => {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold font-mono text-text-primary dark:text-white">
-                    {currencySymbol}{bill.amount.toLocaleString()}
-                  </p>
-                  <p className={`text-[9px] font-mono uppercase tracking-widest font-bold ${bill.isPaid ? 'text-emerald-500' : isOverdue ? 'text-rose-500' : 'text-amber-500'}`}>
-                    {bill.isPaid ? 'Paid' : isOverdue ? 'Overdue' : 'Pending'}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-sm font-bold font-mono text-text-primary dark:text-white">
+                      {currencySymbol}{bill.amount.toLocaleString()}
+                    </p>
+                    <p className={`text-[9px] font-mono uppercase tracking-widest font-bold ${bill.isPaid ? 'text-emerald-500' : isOverdue ? 'text-rose-500' : 'text-amber-500'}`}>
+                      {bill.isPaid ? 'Paid' : isOverdue ? 'Overdue' : 'Pending'}
+                    </p>
+                  </div>
+                  {onSplitBill && (
+                    <button
+                      onClick={() => onSplitBill(bill)}
+                      className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/item:opacity-100 transition-opacity"
+                      title="Split Bill"
+                    >
+                      <SparklesIcon className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );

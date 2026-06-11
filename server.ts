@@ -10,7 +10,6 @@ import fs from 'fs/promises';
 import Parser from 'rss-parser';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { Resend } from 'resend';
 import connectDB from './lib/mongodb';
 import { config } from './lib/config';
 import { User } from './models/User';
@@ -18,13 +17,10 @@ import { Transaction } from './models/Transaction';
 import { Budget } from './models/Budget';
 import { Goal } from './models/Goal';
 import { Bill } from './models/Bill';
+import { Debt } from './models/Debt';
 import { PortfolioAsset } from './models/PortfolioAsset';
 
 const JWT_SECRET = config.JWT_SECRET;
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-
-// OTP Store (In-memory for simplicity, should use Redis or similar in production)
-const otpStore = new Map<string, { otp: string, expires: number }>();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,49 +117,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // Auth Routes
-app.post('/api/auth/send-otp', async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email is required' });
-
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    otpStore.set(email.toLowerCase(), {
-      otp,
-      expires: Date.now() + 10 * 60 * 1000 // 10 minutes
-    });
-
-    if (resend) {
-      await resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: email,
-        subject: 'Your FinSight Verification Code',
-        html: `<p>Your 4-digit verification code is: <strong>${otp}</strong></p>`
-      });
-    } else {
-      console.log(`RESEND_API_KEY not set. OTP for ${email}: ${otp}`);
-    }
-
-    res.json({ message: 'OTP sent successfully' });
-  } catch (error: any) {
-    res.status(500).json({ error: 'Failed to send OTP', details: error.message });
-  }
-});
-
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { email, password, displayName, otp } = req.body;
-    if (!email || !password || !otp) {
-      return res.status(400).json({ error: 'Email, password and OTP are required' });
+    const { email, password, displayName, initialCashBalance, initialOnlineBalance } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
     const signupEmail = email.toLowerCase();
-    const storedOtp = otpStore.get(signupEmail);
-
-    if (!storedOtp || storedOtp.otp !== otp || storedOtp.expires < Date.now()) {
-      return res.status(400).json({ error: 'Invalid or expired OTP' });
-    }
-
-    otpStore.delete(signupEmail);
 
     const existingUser = await (User as any).findOne({ email: signupEmail });
     if (existingUser) return res.status(400).json({ error: 'User already exists' });
@@ -172,7 +133,9 @@ app.post('/api/auth/signup', async (req, res) => {
     const user = new User({
       email: signupEmail,
       password: hashedPassword,
-      displayName: displayName || signupEmail.split('@')[0]
+      displayName: displayName || signupEmail.split('@')[0],
+      initialCashBalance: Number(initialCashBalance) || 0,
+      initialOnlineBalance: Number(initialOnlineBalance) || 0
     });
     await user.save();
 
@@ -184,7 +147,9 @@ app.post('/api/auth/signup', async (req, res) => {
       user: {
         uid: userIdStr,
         email: user.email,
-        displayName: user.displayName
+        displayName: user.displayName,
+        initialCashBalance: user.initialCashBalance,
+        initialOnlineBalance: user.initialOnlineBalance
       }
     });
   } catch (error: any) {
@@ -215,7 +180,9 @@ app.post('/api/auth/login', async (req, res) => {
       user: {
         uid: userIdStr,
         email: user.email,
-        displayName: user.displayName
+        displayName: user.displayName,
+        initialCashBalance: user.initialCashBalance,
+        initialOnlineBalance: user.initialOnlineBalance
       }
     });
   } catch (error: any) {
@@ -432,6 +399,58 @@ app.delete('/api/bills/:id', authenticateToken, async (req: any, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete bill' });
+  }
+});
+
+// Debts API
+app.get('/api/debts', authenticateToken, async (req: any, res) => {
+  try {
+    const debts = await (Debt as any).find({ userId: req.user.userId });
+    res.json(debts.map((d: any) => ({ ...d.toObject(), id: d._id })));
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch debts' });
+  }
+});
+
+app.post('/api/debts', authenticateToken, async (req: any, res) => {
+  try {
+    const newDebt = new Debt({ ...req.body, userId: req.user.userId });
+    await newDebt.save();
+    res.status(201).json({ ...newDebt.toObject(), id: newDebt._id });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to create debt', details: error.message });
+  }
+});
+
+app.put('/api/debts/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const updatedDebt = await (Debt as any).findOneAndUpdate(
+      { _id: id, userId: req.user.userId },
+      req.body,
+      { new: true }
+    );
+    if (updatedDebt) {
+      res.json({ ...updatedDebt.toObject(), id: updatedDebt._id });
+    } else {
+      res.status(404).json({ error: 'Debt not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update debt' });
+  }
+});
+
+app.delete('/api/debts/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const result = await (Debt as any).findOneAndDelete({ _id: id, userId: req.user.userId });
+    if (result) {
+      res.status(204).send();
+    } else {
+      res.status(404).json({ error: 'Debt not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete debt' });
   }
 });
 

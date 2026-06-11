@@ -1,8 +1,8 @@
 
 import React, { useMemo, useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { Transaction, TransactionType, Currency, CURRENCY_SYMBOLS, Bill, Budget, FinancialHealthScore, User, PortfolioAsset } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
+import { Transaction, TransactionType, Currency, CURRENCY_SYMBOLS, Bill, Budget, FinancialHealthScore, User, PortfolioAsset, Debt } from '../types';
 import CategoryPieChart from './CategoryPieChart';
 import ExpenseTrendChart from './ExpenseTrendChart';
 import FinancialStressTest from './FinancialStressTest';
@@ -10,8 +10,9 @@ import BillsWidget from './BillsWidget';
 import BudgetProgress from './BudgetProgress';
 import RecentTransactions from './RecentTransactions';
 import AiSummary from './AiSummary';
-import { ArrowUpIcon, ArrowDownIcon, ScaleIcon, WalletIcon, SparklesIcon, PlusIcon } from './icons';
+import { ArrowUpIcon, ArrowDownIcon, ScaleIcon, WalletIcon, SparklesIcon, PlusIcon, CloseIcon } from './icons';
 import { api } from '../services/api';
+import TransactionForm from './TransactionForm';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -22,42 +23,79 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
   const [healthScore, setHealthScore] = useState<FinancialHealthScore | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
+  const [isSplitBillModalOpen, setIsSplitBillModalOpen] = useState(false);
+  const [splittingBill, setSplittingBill] = useState<Bill | null>(null);
+
+  const handleSplitBill = async (transactionData: any) => {
+    try {
+      await api.addTransaction(user.uid, transactionData);
+      setIsSplitBillModalOpen(false);
+      setSplittingBill(null);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error splitting bill:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
-      const [billsData, budgetsData, healthData, portfolioData] = await Promise.all([
+      const [billsData, budgetsData, healthData, portfolioData, debtData] = await Promise.all([
         api.getBills(user.uid),
         api.getBudgets(user.uid),
         api.getHealthScore(user.uid),
-        api.getPortfolio(user.uid)
+        api.getPortfolio(user.uid),
+        api.getDebts(user.uid)
       ]);
       setBills(billsData);
       setBudgets(budgetsData);
       setHealthScore(healthData);
       setPortfolio(portfolioData);
+      setDebts(debtData);
     };
     fetchData();
   }, []);
 
-  const { totalIncome, totalExpenses, balance, netWorth } = useMemo(() => {
+  const { totalIncome, totalExpenses, balance, netWorth, cashBalance, onlineBalance, totalOwed, totalOwe } = useMemo(() => {
     const stats = transactions.reduce(
       (acc, t) => {
         if (t.type === TransactionType.INCOME) {
           acc.totalIncome += t.amount;
+          if (t.paymentMode === 'Cash') acc.cashBalance += t.amount;
+          else acc.onlineBalance += t.amount;
         } else {
           acc.totalExpenses += t.amount;
+          if (t.paymentMode === 'Cash') acc.cashBalance -= t.amount;
+          else acc.onlineBalance -= t.amount;
         }
         acc.balance = acc.totalIncome - acc.totalExpenses;
         return acc;
       },
-      { totalIncome: 0, totalExpenses: 0, balance: 0 }
+      {
+        totalIncome: 0,
+        totalExpenses: 0,
+        balance: 0,
+        cashBalance: user.initialCashBalance || 0,
+        onlineBalance: user.initialOnlineBalance || 0
+      }
     );
 
+    const debtStats = debts.reduce((acc, d) => {
+      if (d.isCompleted) return acc;
+      if (d.type === 'Lent') acc.totalOwed += d.remainingAmount;
+      else acc.totalOwe += d.remainingAmount;
+      return acc;
+    }, { totalOwed: 0, totalOwe: 0 });
+
     const portfolioValue = portfolio.reduce((acc, asset) => acc + (asset.quantity * asset.currentPrice), 0);
-    return { ...stats, netWorth: stats.balance + portfolioValue };
-  }, [transactions, portfolio]);
+    return {
+      ...stats,
+      ...debtStats,
+      netWorth: stats.cashBalance + stats.onlineBalance + portfolioValue + debtStats.totalOwed - debtStats.totalOwe
+    };
+  }, [transactions, portfolio, debts, user]);
 
   const expenseTransactions = useMemo(() => transactions.filter(t => t.type === TransactionType.EXPENSE), [transactions]);
 
@@ -66,7 +104,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
       {/* AI Summary Banner */}
       <AiSummary transactions={transactions} budgets={budgets} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-6">
         <StatCard 
           title="Total Income" 
           amount={totalIncome} 
@@ -84,12 +122,36 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
           delay={0.1}
         />
         <StatCard 
-          title="Balance" 
-          amount={balance} 
+          title="Cash Balance"
+          amount={cashBalance}
+          icon={<WalletIcon className="h-6 w-6" />}
+          currency={currency}
+          color="indigo"
+          delay={0.15}
+        />
+        <StatCard
+          title="Online Balance"
+          amount={onlineBalance}
           icon={<ScaleIcon className="h-6 w-6" />} 
           currency={currency} 
           color="indigo"
           delay={0.2}
+        />
+        <StatCard
+          title="Total Owed"
+          amount={totalOwed}
+          icon={<ArrowUpIcon className="h-6 w-6" />}
+          currency={currency}
+          color="emerald"
+          delay={0.25}
+        />
+        <StatCard
+          title="Total Owe"
+          amount={totalOwe}
+          icon={<ArrowDownIcon className="h-6 w-6" />}
+          currency={currency}
+          color="rose"
+          delay={0.28}
         />
         <div className="relative group/card">
           <StatCard
@@ -219,7 +281,14 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
-          <BillsWidget bills={bills} currency={currency} />
+          <BillsWidget
+            bills={bills}
+            currency={currency}
+            onSplitBill={(bill) => {
+              setSplittingBill(bill);
+              setIsSplitBillModalOpen(true);
+            }}
+          />
           <NavLink
             to="/budgets"
             className="absolute top-6 right-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/card:opacity-100 transition-opacity z-20"
@@ -229,6 +298,58 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
           </NavLink>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {isSplitBillModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSplitBillModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Split Bill</h2>
+                  <p className="text-xs font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">Converting bill to split transaction</p>
+                </div>
+                <button
+                  onClick={() => setIsSplitBillModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <CloseIcon className="w-6 h-6" />
+                </button>
+              </div>
+
+              <TransactionForm
+                onSubmit={handleSplitBill}
+                currency={currency}
+                userId={user.uid}
+                initialData={splittingBill ? {
+                  id: '',
+                  description: splittingBill.name,
+                  amount: splittingBill.amount,
+                  type: TransactionType.EXPENSE,
+                  category: splittingBill.category,
+                  date: splittingBill.dueDate,
+                  isSplit: true,
+                  splitCount: 2,
+                  splitWith: [''],
+                  paymentMode: splittingBill.paymentMode || 'Online',
+                  upiId: splittingBill.upiId
+                } : null}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

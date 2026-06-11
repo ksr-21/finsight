@@ -14,6 +14,9 @@ const TransactionSchema = new mongoose.Schema({
   isSplit: { type: Boolean, default: false },
   splitCount: { type: Number },
   splitWith: [{ type: String }],
+  paymentMode: { type: String, enum: ['Cash', 'Online'], default: 'Online' },
+  upiId: { type: String },
+  isUPIDone: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', TransactionSchema);

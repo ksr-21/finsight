@@ -3,6 +3,8 @@ export interface User {
     uid: string;
     email: string | null;
     displayName?: string;
+    initialCashBalance?: number;
+    initialOnlineBalance?: number;
 }
 
 export interface UserPreferences {
@@ -31,6 +33,8 @@ export enum Category {
   OTHER = 'Other',
 }
 
+export type PaymentMode = 'Cash' | 'Online';
+
 export interface Transaction {
   id: string;
   description: string;
@@ -45,6 +49,9 @@ export interface Transaction {
   isSplit?: boolean;
   splitCount?: number;
   splitWith?: string[]; // Array of user IDs or names
+  paymentMode?: PaymentMode;
+  upiId?: string;
+  isUPIDone?: boolean;
 }
 
 export interface Budget {
@@ -70,6 +77,21 @@ export interface Bill {
   dueDate: string;
   isPaid: boolean;
   category: Category;
+  paymentMode?: PaymentMode;
+  upiId?: string;
+}
+
+export interface Debt {
+  id: string;
+  person: string;
+  amount: number;
+  type: 'Borrowed' | 'Lent';
+  date: string;
+  dueDate?: string;
+  remainingAmount: number;
+  isCompleted: boolean;
+  notes?: string;
+  paymentMode: PaymentMode;
 }
 
 export interface PortfolioAsset {

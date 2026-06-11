@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Currency, CURRENCY_SYMBOLS, Transaction, TransactionType } from '../types';
+import { Currency, CURRENCY_SYMBOLS, Transaction, TransactionType, PaymentMode } from '../types';
 import {
   CategoryPreferences,
   loadCategoryPreferences,
@@ -11,7 +11,9 @@ import {
   ChevronDownIcon,
   PlusIcon,
   TrashIcon,
+  SparklesIcon,
 } from './icons';
+import QRScanner from './QRScanner';
 
 interface TransactionFormProps {
   onSubmit: (transaction: Omit<Transaction, 'id'>) => void;
@@ -46,6 +48,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [isSplit, setIsSplit] = useState(false);
   const [splitCount, setSplitCount] = useState(2);
   const [splitWith, setSplitWith] = useState<string[]>(['']);
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
+  const [showScanner, setShowScanner] = useState(false);
+  const [upiId, setUpiId] = useState('');
 
   const categories = categoryPreferences[type];
 
@@ -62,6 +67,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       setIsSplit(initialData.isSplit || false);
       setSplitCount(initialData.splitCount || 2);
       setSplitWith(initialData.splitWith || ['']);
+      setPaymentMode(initialData.paymentMode || 'Online');
+      setUpiId(initialData.upiId || '');
       return;
     }
 
@@ -141,11 +148,60 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       isSplit,
       splitCount,
       splitWith: isSplit ? splitWith.filter(s => s.trim() !== '') : [],
+      paymentMode,
+      upiId: paymentMode === 'Online' ? upiId : undefined,
     });
+  };
+
+  const handleScanSuccess = (decodedText: string) => {
+    // Example UPI URL: upi://pay?pa=upiid@bank&pn=Name&am=100&cu=INR
+    try {
+      const url = new URL(decodedText);
+      if (url.protocol === 'upi:') {
+        const params = new URLSearchParams(url.search);
+        const pa = params.get('pa');
+        const pn = params.get('pn');
+        const am = params.get('am');
+
+        if (pa) setUpiId(pa);
+        if (pn) setDescription(pn);
+        if (am) setAmount(am);
+
+        setPaymentMode('Online');
+        setShowScanner(false);
+      }
+    } catch (e) {
+      console.error("Invalid QR code", e);
+    }
+  };
+
+  const handlePayUPI = () => {
+    if (!amount || !upiId) return;
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(description || 'Payment')}&am=${amount}&cu=INR`;
+    window.location.href = upiUrl;
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {showScanner && (
+        <QRScanner
+          onScanSuccess={handleScanSuccess}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {paymentMode === 'Online' && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 py-3 rounded-xl font-bold text-sm border border-indigo-100 dark:border-indigo-500/20"
+          >
+            <SparklesIcon className="w-4 h-4" />
+            Scan QR to Pay
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-1.5 sm:gap-2 rounded-2xl bg-gray-100 dark:bg-gray-900/60 p-1">
         {[TransactionType.EXPENSE, TransactionType.INCOME].map((transactionType) => {
           const isSelected = type === transactionType;
@@ -168,21 +224,48 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         })}
       </div>
 
-      <div className="space-y-2">
-        <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">
-          Amount ({CURRENCY_SYMBOLS[currency]})
-        </label>
-        <input
-          type="number"
-          min="0.01"
-          step="0.01"
-          inputMode="decimal"
-          placeholder="0.00"
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 font-mono text-base outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
-          required
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">
+            Payment Mode
+          </label>
+          <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-900/60 p-1 h-[58px]">
+            {(['Cash', 'Online'] as PaymentMode[]).map((mode) => {
+              const isSelected = paymentMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPaymentMode(mode)}
+                  className={`rounded-lg px-2 py-2 text-xs font-bold transition-all ${
+                    isSelected
+                      ? 'bg-white text-indigo-600 shadow-sm dark:bg-gray-800 dark:text-indigo-400'
+                      : 'text-text-secondary hover:bg-white/50 dark:text-gray-400 dark:hover:bg-gray-800/50'
+                  }`}
+                >
+                  {mode}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">
+            Amount ({CURRENCY_SYMBOLS[currency]})
+          </label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 font-mono text-base outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
+            required
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -388,6 +471,32 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                 className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
               />
             </div>
+
+            {paymentMode === 'Online' && (
+              <div className="space-y-2">
+                <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">
+                  Recipient UPI ID
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="example@upi"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    className="flex-1 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
+                  />
+                  {upiId && amount && (
+                    <button
+                      type="button"
+                      onClick={handlePayUPI}
+                      className="px-4 py-3 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all"
+                    >
+                      Pay Now
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">

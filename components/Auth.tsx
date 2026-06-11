@@ -13,33 +13,10 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
-    const [otp, setOtp] = useState('');
-    const [isOtpSent, setIsOtpSent] = useState(false);
+    const [initialCash, setInitialCash] = useState('0');
+    const [initialOnline, setInitialOnline] = useState('0');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
-    const handleSendOtp = async () => {
-        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-            setError('Please enter a valid email address.');
-            return;
-        }
-        setIsLoading(true);
-        setError('');
-        try {
-            const response = await fetch('/api/auth/send-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
-            setIsOtpSent(true);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,10 +32,6 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
         }
         if (!isLogin && !name) {
             setError('Please enter your full name.');
-            return;
-        }
-        if (!isLogin && !otp) {
-            setError('Please enter the verification code.');
             return;
         }
         
@@ -78,7 +51,13 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                 const response = await fetch('/api/auth/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, displayName: name, otp })
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        displayName: name,
+                        initialCashBalance: parseFloat(initialCash) || 0,
+                        initialOnlineBalance: parseFloat(initialOnline) || 0
+                    })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error);
@@ -86,7 +65,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                 const user: User = {
                     uid: data.user.uid,
                     email: data.user.email,
-                    displayName: data.user.displayName
+                    displayName: data.user.displayName,
+                    initialCashBalance: data.user.initialCashBalance,
+                    initialOnlineBalance: data.user.initialOnlineBalance
                 };
                 localStorage.setItem('finsight_user', JSON.stringify(user));
                 onAuthSuccess(user);
@@ -123,18 +104,42 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                         {error && <p className="text-red-500 text-xs text-center bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/20">{error}</p>}
 
                         {!isLogin && (
-                            <div>
-                                <label className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Full Name</label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                    placeholder="John Doe"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
-                                />
-                            </div>
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Full Name</label>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        required
+                                        disabled={isLoading}
+                                        placeholder="John Doe"
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Initial Cash</label>
+                                        <input
+                                            type="number"
+                                            value={initialCash}
+                                            onChange={e => setInitialCash(e.target.value)}
+                                            disabled={isLoading}
+                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Initial Online</label>
+                                        <input
+                                            type="number"
+                                            value={initialOnline}
+                                            onChange={e => setInitialOnline(e.target.value)}
+                                            disabled={isLoading}
+                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            </>
                         )}
 
                         <div>
@@ -150,32 +155,6 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                             />
                         </div>
 
-                        {!isLogin && (
-                            <div>
-                                <label className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Verification Code (OTP)</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        maxLength={4}
-                                        value={otp}
-                                        onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                                        required
-                                        disabled={isLoading || !isOtpSent}
-                                        placeholder="1234"
-                                        className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleSendOtp}
-                                        disabled={isLoading || isOtpSent}
-                                        className="px-4 py-3 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 disabled:bg-gray-400 transition-all"
-                                    >
-                                        {isOtpSent ? 'Sent' : 'Get OTP'}
-                                    </button>
-                                </div>
-                                {isOtpSent && <p className="text-[10px] text-emerald-500 mt-1 ml-1 font-bold">Code sent to your email</p>}
-                            </div>
-                        )}
                         <div>
                             <label className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
                             <input 

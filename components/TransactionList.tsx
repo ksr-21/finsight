@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Transaction, Category, TransactionType, Currency, CURRENCY_SYMBOLS } from '../types';
-import { PencilIcon, TrashIcon, ArrowDownTrayIcon, ChevronDownIcon } from './icons';
+import { PencilIcon, TrashIcon, ArrowDownTrayIcon, ChevronDownIcon, SparklesIcon } from './icons';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -252,7 +252,16 @@ const TransactionList: React.FC<TransactionListProps> = ({
           <tbody>
             {filteredTransactions.map(t => (
               <tr key={t.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                <td className="py-3 px-4 text-text-primary dark:text-white">{t.description}</td>
+                <td className="py-3 px-4 text-text-primary dark:text-white">
+                  <div className="flex items-center gap-2">
+                    {t.description}
+                    {t.isSplit && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 text-[8px] font-mono font-bold uppercase tracking-widest border border-indigo-500/20">
+                        Split {t.splitCount}x
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="py-3 px-4 text-text-secondary dark:text-gray-300">
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200">{t.category}</span>
                 </td>
@@ -262,6 +271,18 @@ const TransactionList: React.FC<TransactionListProps> = ({
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center justify-center gap-2">
+                    {!t.isSplit && (
+                      <button
+                        onClick={() => {
+                          const splitT = { ...t, isSplit: true, splitCount: 2, splitWith: [''] };
+                          onEditTransaction(splitT);
+                        }}
+                        className="text-gray-500 hover:text-indigo-600"
+                        title="Split transaction"
+                      >
+                        <SparklesIcon className="h-5 w-5" />
+                      </button>
+                    )}
                     <button onClick={() => onEditTransaction(t)} className="text-gray-500 hover:text-primary dark:hover:text-primary-dark">
                       <PencilIcon className="h-5 w-5" />
                     </button>
