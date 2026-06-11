@@ -45,6 +45,13 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (root) {
+      root.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab]);
+
   const fetchData = async () => {
     try {
       const [bData, gData, billData, portfolioData] = await Promise.all([
@@ -203,11 +210,22 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
     }
   };
 
-  const getCategorySpending = (category: Category) => {
+  const getBudgetSpending = (b: Budget) => {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startDate = new Date();
+    if (b.period === 'weekly') {
+      startDate.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+    } else {
+      startDate.setDate(1); // Start of month
+    }
+    startDate.setHours(0, 0, 0, 0);
+
     return transactions
-      .filter(t => t.category === category && new Date(t.date) >= startOfMonth)
+      .filter(t => {
+        const matchesCategory = b.category === 'Total' || t.category === b.category;
+        const isExpense = t.type === 'Expense';
+        return matchesCategory && isExpense && new Date(t.date) >= startDate;
+      })
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
@@ -288,7 +306,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         {/* Budgets Section */}
         <div className="space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Monthly Budgets</h2>
+            <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Spending Targets</h2>
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => {
@@ -311,7 +329,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
           <div className="space-y-6">
             {budgets.length > 0 ? (
               budgets.map((b, index) => {
-                const spent = getCategorySpending(b.category);
+                const spent = getBudgetSpending(b);
                 const percent = Math.min((spent / b.amount) * 100, 100);
                 const isOver = spent > b.amount;
 
@@ -330,7 +348,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                         </div>
                         <div>
                           <h3 className="font-bold text-text-primary dark:text-white">{b.category}</h3>
-                          <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">Monthly Limit</p>
+                          <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">{b.period} Limit</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">

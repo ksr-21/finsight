@@ -49,9 +49,9 @@ export interface Transaction {
 
 export interface Budget {
   id: string;
-  category: Category;
+  category: Category | 'Total';
   amount: number;
-  period: 'monthly';
+  period: 'weekly' | 'monthly';
 }
 
 export interface Goal {
@@ -96,6 +96,16 @@ export interface FinancialHealthScore {
 export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'alert' | 'split';
+  date: string;
+  isRead: boolean;
+  actionUrl?: string;
 }
 
 export enum Currency {

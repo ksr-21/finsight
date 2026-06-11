@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Transaction, Currency, User } from './types';
+import { Transaction, Currency, User, CURRENCY_SYMBOLS } from './types';
 import Header from './components/Header';
 import MobileNav from './components/MobileNav';
 import TransactionForm from './components/TransactionForm';
@@ -15,7 +15,10 @@ import WealthHorizonPage from './pages/WealthHorizonPage';
 import BudgetsGoalsPage from './pages/BudgetsGoalsPage';
 import NewsPage from './pages/NewsPage';
 import InsightsPage from './pages/InsightsPage';
+import NotificationsPage from './pages/NotificationsPage';
 import AiChatbot from './components/AiChatbot';
+import ScrollToTop from './components/ScrollToTop';
+import { currencyService } from './services/currencyService';
 
 interface AppProps {
   user: User;
@@ -29,12 +32,30 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const [currency, setCurrency] = useState<Currency>(Currency.USD);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const balance = transactions.reduce((acc, t) => acc + (t.type === 'Income' ? t.amount : -t.amount), 0);
+
+  const convertedTransactions = transactions.map(t => {
+    // Current app architecture seems to store amounts in a "base" currency (USD usually)
+    // or whatever was active when the transaction was added.
+    // However, the requirement is "when they change the currency the amount must be get converted"
+    // Let's assume the stored transactions are in a reference currency or we need to track their original currency.
+    // For now, let's treat the transactions as having been in the PREVIOUS currency or a fixed reference.
+    // Since I don't see originalCurrency in Transaction type, I'll assume they are stored in USD.
+
+    // If currency is USD, return as is.
+    // If currency is INR, and we assume stored is USD, then multiply by rate.
+    const rate = exchangeRates[currency] || 1;
+    return {
+      ...t,
+      amount: t.amount * rate
+    };
+  });
 
   const loadUserData = useCallback(async () => {
     try {
@@ -42,6 +63,12 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       setSyncError(null);
 
       const trans = await api.getTransactions(user.uid);
+
+      // Load rates
+      const rateData = await currencyService.getRates(Currency.USD);
+      if (rateData) {
+        setExchangeRates(rateData.rates);
+      }
 
       // Load preferences from local storage directly
       const prefsJSON = localStorage.getItem(`finsight_preferences_${user.uid}`);
@@ -119,6 +146,14 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const toggleDarkMode = () => {
     setIsDarkMode(prev => !prev);
   };
+
+  const handleCurrencyChange = async (newCurrency: Currency) => {
+    setCurrency(newCurrency);
+    const rateData = await currencyService.getRates(newCurrency);
+    if (rateData) {
+      setExchangeRates(rateData.rates);
+    }
+  };
   
   if (isLoadingData) {
     return (
@@ -153,12 +188,13 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         )}
       </AnimatePresence>
 
+      <ScrollToTop />
       <Header 
         user={user}
         isDarkMode={isDarkMode} 
         toggleDarkMode={toggleDarkMode} 
         currency={currency}
-        onCurrencyChange={setCurrency}
+        onCurrencyChange={handleCurrencyChange}
         onAddTransaction={openAddModal}
         onOpenProfile={() => setIsProfileOpen(true)}
       />
@@ -166,11 +202,12 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       <main className="max-w-7xl mx-auto pb-24 md:pb-8">
         <Routes>
           <Route path="/" element={<Navigate to="/transactions" replace />} />
-          <Route path="/dashboard" element={<DashboardPage transactions={transactions} currency={currency} user={user} />} />
-          <Route path="/transactions" element={<TransactionsPage currency={currency} user={user} />} />
-          <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={transactions} user={user} />} />
-          <Route path="/horizon" element={<WealthHorizonPage transactions={transactions} currency={currency} />} />
-          <Route path="/insights" element={<InsightsPage transactions={transactions} currency={currency} />} />
+          <Route path="/dashboard" element={<DashboardPage transactions={convertedTransactions} currency={currency} user={user} />} />
+          <Route path="/transactions" element={<TransactionsPage currency={currency} user={user} transactions={convertedTransactions} />} />
+          <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={convertedTransactions} user={user} />} />
+          <Route path="/horizon" element={<WealthHorizonPage transactions={convertedTransactions} currency={currency} />} />
+          <Route path="/insights" element={<InsightsPage transactions={convertedTransactions} currency={currency} />} />
+          <Route path="/notifications" element={<NotificationsPage user={user} currency={currency} />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon } from './icons';
+import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, BellIcon } from './icons';
 import { Currency, User } from '../types';
 
 interface HeaderProps {
@@ -22,6 +22,7 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Budgets', path: '/budgets' },
     { label: 'Insights', path: '/insights' },
+    { label: 'Notifications', path: '/notifications' },
     { label: 'Horizon', path: '/horizon' },
     { label: 'News', path: '/news' },
   ];
@@ -107,6 +108,16 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
 
             <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 hidden md:block" />
 
+            <NavLink
+              to="/notifications"
+              className="hidden md:block p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-100 dark:border-gray-700 transition-all hover:scale-105 active:scale-95 relative"
+            >
+              <BellIcon className="h-4 w-4" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white dark:border-gray-800" />
+            </NavLink>
+
+            <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 hidden md:block" />
+
             <button
               onClick={onAddTransaction}
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 active:scale-95 text-xs"
@@ -142,6 +153,14 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
               </div>
 
             {/* Mobile Menu Button */}
+            <NavLink
+              to="/notifications"
+              className="lg:hidden p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-400 border border-gray-100 dark:border-gray-700 relative"
+            >
+              <BellIcon className="h-4 w-4" />
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-rose-500 rounded-full" />
+            </NavLink>
+
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-100 dark:border-gray-700 transition-all lg:hidden"

@@ -6,7 +6,8 @@ import {
   ScaleIcon,
   TrendingUpIcon,
   NewspaperIcon,
-  SparklesIcon
+  SparklesIcon,
+  BellIcon
 } from './icons';
 
 const MobileNav: React.FC = () => {
@@ -14,7 +15,7 @@ const MobileNav: React.FC = () => {
     { label: 'Dash', path: '/dashboard', icon: ChartPieIcon },
     { label: 'Trans', path: '/transactions', icon: WalletIcon },
     { label: 'Budgets', path: '/budgets', icon: ScaleIcon },
-    { label: 'Horizon', path: '/horizon', icon: TrendingUpIcon },
+    { label: 'Alerts', path: '/notifications', icon: BellIcon },
     { label: 'Insights', path: '/insights', icon: SparklesIcon },
     { label: 'News', path: '/news', icon: NewspaperIcon },
   ];
