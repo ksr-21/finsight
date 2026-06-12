@@ -336,66 +336,16 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-text-primary dark:text-white tracking-tight mb-2">Financial Planning</h1>
-          <p className="text-text-secondary dark:text-gray-400 font-mono text-sm uppercase tracking-widest">Master your money engine</p>
-        </div>
-        <div className="flex items-center gap-4">
-           {activeTab === 'budgets_goals' && (
-             <button
-                onClick={() => {
-                setEditingGoal(null);
-                setIsGoalModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
-            >
-                <PlusIcon className="w-5 h-5" />
-                New Goal
-            </button>
-           )}
-           {activeTab === 'bills' && (
-             <button
-                onClick={() => {
-                setEditingBill(null);
-                setIsBillModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
-            >
-                <PlusIcon className="w-5 h-5" />
-                Add Bill
-            </button>
-           )}
-           {activeTab === 'portfolio' && (
-             <button
-                onClick={() => {
-                setEditingPortfolio(null);
-                setIsPortfolioModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
-            >
-                <PlusIcon className="w-5 h-5" />
-                Add Asset
-            </button>
-           )}
-           {activeTab === 'debts' && (
-             <button
-                onClick={() => {
-                setEditingDebt(null);
-                setIsDebtModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
-            >
-                <PlusIcon className="w-5 h-5" />
-                Add Entry
-            </button>
-           )}
+          <h1 className="text-3xl md:text-4xl font-bold text-text-primary dark:text-white tracking-tight mb-1">Financial Planning</h1>
+          <p className="text-text-secondary dark:text-gray-400 font-mono text-[10px] md:text-sm uppercase tracking-widest">Master your money engine</p>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-900/50 rounded-2xl w-fit mb-12 border border-gray-200 dark:border-gray-800">
+      <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-900/50 rounded-2xl w-full md:w-fit mb-6 border border-gray-200 dark:border-gray-800 overflow-x-auto scrollbar-hide no-scrollbar">
         {[
           { id: 'budgets_goals', label: 'Budgets & Goals', icon: WalletIcon },
           { id: 'bills', label: 'Upcoming Bills', icon: CalendarIcon },
@@ -408,37 +358,92 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
               setActiveTab(tab.id as any);
               setIsManageMode(false);
             }}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs transition-all ${
+            className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-md'
                 : 'text-text-secondary dark:text-gray-500 hover:text-text-primary dark:hover:text-gray-300'
             }`}
           >
-            <tab.icon className="w-4 h-4" />
+            <tab.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
             {tab.label}
           </button>
         ))}
       </div>
 
+      {/* Action Buttons Below Tabs */}
+      <div className="flex flex-wrap gap-3 mb-8">
+        {activeTab === 'budgets_goals' && (
+          <>
+            <button
+              onClick={() => {
+                setEditingGoal(null);
+                setIsGoalModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+            >
+              <PlusIcon className="w-4 h-4" />
+              New Goal
+            </button>
+            <button
+              onClick={() => {
+                setEditingBudget(null);
+                setIsBudgetModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm"
+            >
+              <PlusIcon className="w-4 h-4" />
+              New Budget
+            </button>
+          </>
+        )}
+        {activeTab === 'bills' && (
+          <button
+            onClick={() => {
+              setEditingBill(null);
+              setIsBillModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Add Bill
+          </button>
+        )}
+        {activeTab === 'portfolio' && (
+          <button
+            onClick={() => {
+              setEditingPortfolio(null);
+              setIsPortfolioModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Add Asset
+          </button>
+        )}
+        {activeTab === 'debts' && (
+          <button
+            onClick={() => {
+              setEditingDebt(null);
+              setIsDebtModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Add Entry
+          </button>
+        )}
+      </div>
+
       {activeTab === 'budgets_goals' && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
         {/* Budgets Section */}
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Spending Targets</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Spending Targets</h2>
             <div className="flex items-center gap-4">
               <button 
-                onClick={() => {
-                  setEditingBudget(null);
-                  setIsBudgetModalOpen(true);
-                }}
-                className="text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:underline"
-              >
-                Add Budget
-              </button>
-              <button 
                 onClick={() => setIsManageMode(!isManageMode)}
-                className="text-text-secondary dark:text-gray-400 font-bold text-sm hover:underline"
+                className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
               >
                 {isManageMode ? 'Done' : 'Manage'}
               </button>
@@ -520,22 +525,13 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         </div>
 
         {/* Goals Section */}
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Savings Goals</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Savings Goals</h2>
             <div className="flex items-center gap-4">
               <button
-                onClick={() => {
-                  setEditingGoal(null);
-                  setIsGoalModalOpen(true);
-                }}
-                className="text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:underline"
-              >
-                Add Goal
-              </button>
-              <button
                 onClick={() => setIsManageMode(!isManageMode)}
-                className="text-text-secondary dark:text-gray-400 font-bold text-sm hover:underline"
+                className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
               >
                 {isManageMode ? 'Done' : 'Manage'}
               </button>
@@ -641,12 +637,12 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       )}
 
       {activeTab === 'bills' && (
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Recurring & Upcoming Bills</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Recurring & Upcoming Bills</h2>
             <button
               onClick={() => setIsManageMode(!isManageMode)}
-              className="text-text-secondary dark:text-gray-400 font-bold text-sm hover:underline"
+              className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
             >
               {isManageMode ? 'Done' : 'Manage'}
             </button>
@@ -716,12 +712,12 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       )}
 
       {activeTab === 'debts' && (
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Borrowed & Lent Money</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Borrowed & Lent Money</h2>
                 <button
                     onClick={() => setIsManageMode(!isManageMode)}
-                    className="text-text-secondary dark:text-gray-400 font-bold text-sm hover:underline"
+                    className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
                 >
                     {isManageMode ? 'Done' : 'Manage'}
                 </button>
@@ -826,12 +822,12 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       )}
 
       {activeTab === 'portfolio' && (
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Investment Portfolio</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Investment Portfolio</h2>
             <button
               onClick={() => setIsManageMode(!isManageMode)}
-              className="text-text-secondary dark:text-gray-400 font-bold text-sm hover:underline"
+              className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
             >
               {isManageMode ? 'Done' : 'Manage'}
             </button>
@@ -911,7 +907,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       {/* Modals */}
       <AnimatePresence>
         {isBudgetModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -923,7 +919,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+              className="relative my-auto w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 pb-12 shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -949,7 +945,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         )}
 
         {isDebtModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -961,7 +957,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+              className="relative my-auto w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 pb-12 shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -987,7 +983,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         )}
 
         {isGoalModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -999,7 +995,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+              className="relative my-auto w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 pb-12 shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -1025,7 +1021,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         )}
 
         {isBillModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1037,7 +1033,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+              className="relative my-auto w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 pb-12 shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -1063,7 +1059,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         )}
 
         {isPortfolioModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1075,7 +1071,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+              className="relative my-auto w-full max-w-lg bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 pb-12 shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>

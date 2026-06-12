@@ -21,6 +21,7 @@ interface TransactionFormProps {
   currency: Currency;
   userId: string;
   initialData?: Transaction | null;
+  initialShowScanner?: boolean;
 }
 
 const getToday = () => {
@@ -34,6 +35,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   currency,
   userId,
   initialData,
+  initialShowScanner,
 }) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -50,7 +52,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [splitCount, setSplitCount] = useState(2);
   const [splitWith, setSplitWith] = useState<string[]>(['']);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
-  const [showScanner, setShowScanner] = useState(false);
+  const [showScanner, setShowScanner] = useState(initialShowScanner || false);
   const [upiId, setUpiId] = useState('');
 
   const categories = categoryPreferences[type];
@@ -531,15 +533,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       <CheckCircleIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
                     )}
                   </div>
-                  {upiId && amount && !isUPISuccess && (
-                    <button
-                      type="button"
-                      onClick={handlePayUPI}
-                      className="px-4 py-3 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all"
-                    >
-                      Pay Now
-                    </button>
-                  )}
                 </div>
               </div>
             )}
@@ -559,6 +552,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           </div>
         )}
       </div>
+
+      {paymentMode === 'Online' && upiId && amount && !isUPISuccess && (
+        <button
+          type="button"
+          onClick={handlePayUPI}
+          className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2"
+        >
+          <SparklesIcon className="w-5 h-5" />
+          Pay Now
+        </button>
+      )}
 
       <button
         type="submit"

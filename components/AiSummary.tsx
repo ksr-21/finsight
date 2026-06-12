@@ -60,20 +60,20 @@ const AiSummary: React.FC<AiSummaryProps> = ({ transactions, budgets }) => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto pb-4 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-40 bg-white/5 rounded-[2.5rem] animate-pulse border border-white/5" />
+              <div key={i} className="min-w-[280px] md:min-w-0 h-40 bg-white/5 rounded-[2.5rem] animate-pulse border border-white/5" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto pb-4 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
             {insights.map((insight, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.15, type: "spring", stiffness: 100 }}
-                className="bg-white/20 dark:bg-white/10 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 hover:bg-white/30 dark:hover:bg-white/20 hover:border-white/30 transition-all duration-500 group/card relative overflow-hidden"
+                className="min-w-[280px] md:min-w-0 bg-white/20 dark:bg-white/10 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 hover:bg-white/30 dark:hover:bg-white/20 hover:border-white/30 transition-all duration-500 group/card relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/card:opacity-30 transition-opacity">
                   {index === 0 ? <TrendingUpIcon className="w-12 h-12" /> : index === 1 ? <WalletIcon className="w-12 h-12" /> : <SparklesIcon className="w-12 h-12" />}
