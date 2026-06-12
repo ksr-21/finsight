@@ -155,21 +155,45 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   };
 
   const handleScanSuccess = (decodedText: string) => {
-    // Example UPI URL: upi://pay?pa=upiid@bank&pn=Name&am=100&cu=INR
+    // Standard UPI URL: upi://pay?pa=upiid@bank&pn=Name&am=100&cu=INR
+    // Some codes might just be the UPI ID or a different format.
     try {
-      const url = new URL(decodedText);
-      if (url.protocol === 'upi:') {
-        const params = new URLSearchParams(url.search);
-        const pa = params.get('pa');
-        const pn = params.get('pn');
-        const am = params.get('am');
+      let pa = '';
+      let pn = '';
+      let am = '';
 
-        if (pa) setUpiId(pa);
+      if (decodedText.startsWith('upi://pay')) {
+        const url = new URL(decodedText);
+        const params = new URLSearchParams(url.search);
+        pa = params.get('pa') || '';
+        pn = params.get('pn') || '';
+        am = params.get('am') || '';
+      } else if (decodedText.includes('@')) {
+        // Simple UPI ID scan
+        pa = decodedText.trim();
+      }
+
+      if (pa) {
+        setUpiId(pa);
         if (pn) setDescription(pn);
-        if (am) setAmount(am);
+        if (am) {
+          setAmount(am);
+        } else {
+          // If no amount in QR, prompt user to enter it
+          const userAmount = window.prompt("Enter amount to pay:");
+          if (userAmount && !isNaN(parseFloat(userAmount))) {
+            setAmount(userAmount);
+          }
+        }
 
         setPaymentMode('Online');
         setShowScanner(false);
+
+        // If we have both UPI ID and amount, offer to pay immediately
+        if (pa && (am || amount)) {
+          // We can't automatically redirect as it might be jarring,
+          // but we'll show the Pay Now button clearly.
+        }
       }
     } catch (e) {
       console.error("Invalid QR code", e);
@@ -179,12 +203,23 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [isUPISuccess, setIsUPISuccess] = useState(false);
 
   const handlePayUPI = () => {
-    if (!amount || !upiId) return;
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(description || 'Payment')}&am=${amount}&cu=INR`;
-    window.location.href = upiUrl;
-    if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid and save.")) {
-      setIsUPISuccess(true);
+    const finalAmount = amount;
+    if (!finalAmount || !upiId) {
+      alert("Please ensure amount and UPI ID are set.");
+      return;
     }
+
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(description || 'Payment')}&am=${finalAmount}&cu=INR`;
+
+    // Attempt to open UPI app
+    window.location.href = upiUrl;
+
+    // Show confirmation dialog after a short delay to allow app switch
+    setTimeout(() => {
+      if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid and save.")) {
+        setIsUPISuccess(true);
+      }
+    }, 1000);
   };
 
   return (

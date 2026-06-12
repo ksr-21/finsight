@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import React, { useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface QRScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -9,21 +9,42 @@ interface QRScannerProps {
 }
 
 const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onScanError, onClose }) => {
-  useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      /* verbose= */ false
-    );
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
-    scanner.render(onScanSuccess, (error) => {
-      if (onScanError) onScanError(error);
-    });
+  useEffect(() => {
+    const scanner = new Html5Qrcode("qr-reader");
+    scannerRef.current = scanner;
+
+    const startScanner = async () => {
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+          },
+          onScanSuccess,
+          (error) => {
+            // Only report specific errors if needed, otherwise ignore noise
+            if (onScanError && typeof error === 'string' && !error.includes("No MultiFormat Readers")) {
+              onScanError(error);
+            }
+          }
+        );
+      } catch (err) {
+        console.error("Failed to start scanner:", err);
+        if (onScanError) onScanError(String(err));
+      }
+    };
+
+    startScanner();
 
     return () => {
-      scanner.clear().catch(error => {
-        console.error("Failed to clear html5QrcodeScanner", error);
-      });
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().then(() => {
+          scannerRef.current?.clear();
+        }).catch(err => console.error("Error stopping scanner:", err));
+      }
     };
   }, [onScanSuccess, onScanError]);
 
@@ -39,7 +60,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onScanError, onClo
           </svg>
         </button>
         <h2 className="text-xl font-bold text-center mb-6 text-text-primary dark:text-white">Scan UPI QR Code</h2>
-        <div id="qr-reader" className="overflow-hidden rounded-xl"></div>
+        <div id="qr-reader" className="overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-900 min-h-[250px]"></div>
         <p className="mt-4 text-center text-sm text-text-secondary dark:text-gray-400">
           Point your camera at a UPI QR code
         </p>
