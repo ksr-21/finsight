@@ -15,9 +15,10 @@ interface BudgetsGoalsPageProps {
   currency: Currency;
   transactions: any[];
   user: User;
+  onRefreshData?: () => void;
 }
 
-const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transactions, user }) => {
+const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transactions, user, onRefreshData }) => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
@@ -34,6 +35,8 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
   const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
   const [isContributeModalOpen, setIsContributeModalOpen] = useState(false);
   const [isRepayModalOpen, setIsRepayModalOpen] = useState(false);
+  const [isRepaymentHistoryOpen, setIsRepaymentHistoryOpen] = useState(false);
+  const [selectedDebtForHistory, setSelectedDebtForHistory] = useState<Debt | null>(null);
 
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -197,7 +200,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         setIsDebtModalOpen(false);
         setEditingDebt(null);
         fetchData();
-        window.location.reload();
+        if (onRefreshData) onRefreshData();
     } catch (error) {
         console.error('Error saving debt:', error);
     }
@@ -225,9 +228,17 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         const newRemaining = Math.max(0, repayingDebt.remainingAmount - amount);
         const isCompleted = newRemaining === 0;
 
+        const repayment = {
+            id: Math.random().toString(36).substr(2, 9),
+            amount,
+            date: new Date().toISOString().split('T')[0],
+            paymentMode: repayingDebt.paymentMode
+        };
+
         await api.updateDebt(user.uid, repayingDebt.id, {
             remainingAmount: newRemaining,
-            isCompleted: isCompleted
+            isCompleted: isCompleted,
+            repayments: [...(repayingDebt.repayments || []), repayment]
         });
 
         // Add a transaction for the repayment
@@ -245,7 +256,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         setRepaymentAmount('');
         setRepayingDebt(null);
         fetchData();
-        window.location.reload();
+        if (onRefreshData) onRefreshData();
     } catch (error) {
         console.error('Error recording repayment:', error);
     }
@@ -288,10 +299,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       setContributionAmount('');
       setContributingGoal(null);
       fetchData();
-      // We need to refresh transactions too if we want App.tsx to see it,
-      // but App.tsx owns transactions state. This is a bit tricky with current architecture.
-      // For now, it updates local storage and goal display.
-      window.location.reload(); // Simple way to refresh all state
+      if (onRefreshData) onRefreshData();
     } catch (error) {
       console.error('Error contributing to goal:', error);
     }
@@ -302,7 +310,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       await api.addTransaction(user.uid, transactionData);
       setIsSplitBillModalOpen(false);
       setSplittingBill(null);
-      window.location.reload();
+      if (onRefreshData) onRefreshData();
     } catch (error) {
       console.error('Error splitting bill:', error);
     }
@@ -773,17 +781,31 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                                         <div className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">
                                             {debt.dueDate ? `Due ${new Date(debt.dueDate).toLocaleDateString()}` : 'No due date'}
                                         </div>
-                                        {!debt.isCompleted && (
-                                            <button
-                                                onClick={() => {
-                                                    setRepayingDebt(debt);
-                                                    setIsRepayModalOpen(true);
-                                                }}
-                                                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/10"
-                                            >
-                                                Repay
-                                            </button>
-                                        )}
+                                        <div className="flex items-center gap-2">
+                                            {(debt.repayments?.length || 0) > 0 && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedDebtForHistory(debt);
+                                                        setIsRepaymentHistoryOpen(true);
+                                                    }}
+                                                    className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                                                    title="View Repayment History"
+                                                >
+                                                    <TrendingUpIcon className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            {!debt.isCompleted && (
+                                                <button
+                                                    onClick={() => {
+                                                        setRepayingDebt(debt);
+                                                        setIsRepayModalOpen(true);
+                                                    }}
+                                                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/10"
+                                                >
+                                                    Repay
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 {isOverdue && (
@@ -1178,6 +1200,55 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                   Confirm Repayment
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {isRepaymentHistoryOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsRepaymentHistoryOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Repayment History</h2>
+                  <p className="text-xs font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">for {selectedDebtForHistory?.person}</p>
+                </div>
+                <button
+                  onClick={() => setIsRepaymentHistoryOpen(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <CloseIcon className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {selectedDebtForHistory?.repayments && selectedDebtForHistory.repayments.length > 0 ? (
+                  selectedDebtForHistory.repayments.map((r, idx) => (
+                    <div key={r.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700">
+                      <div>
+                        <p className="text-sm font-bold text-text-primary dark:text-white">{currencySymbol}{r.amount.toLocaleString()}</p>
+                        <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">{new Date(r.date).toLocaleDateString()}</p>
+                      </div>
+                      <div className="px-2 py-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <p className="text-[8px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">{r.paymentMode}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-sm text-text-secondary dark:text-gray-500 font-mono uppercase tracking-widest py-8">No repayments recorded</p>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

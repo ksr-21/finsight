@@ -21,7 +21,7 @@ import {
     orderBy
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Transaction, Currency, Budget, Goal, Bill, PortfolioAsset, Debt } from '../types';
+import { Transaction, Currency, Budget, Goal, Bill, PortfolioAsset, Debt, User } from '../types';
 
 interface UserPreferences {
     isDarkMode: boolean;
@@ -98,7 +98,9 @@ export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
             await setDoc(userDocRef, {
                 email,
                 displayName,
-                createdAt
+                createdAt,
+                initialCashBalance: 0,
+                initialOnlineBalance: 0
             });
             // Also create initial preferences
             await saveUserPreferences(user.uid, defaultPreferences);
@@ -107,6 +109,11 @@ export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
             throw error;
         }
     }
+};
+
+export const updateUserProfile = async (userId: string, data: Partial<User>) => {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, data as any);
 };
 
 // --- Firestore Data Operations ---

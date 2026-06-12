@@ -197,14 +197,15 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         onCurrencyChange={handleCurrencyChange}
         onAddTransaction={openAddModal}
         onOpenProfile={() => setIsProfileOpen(true)}
+        transactions={convertedTransactions}
       />
 
       <main className="max-w-7xl mx-auto pb-24 md:pb-8">
         <Routes>
           <Route path="/" element={<Navigate to="/transactions" replace />} />
-          <Route path="/dashboard" element={<DashboardPage transactions={convertedTransactions} currency={currency} user={user} />} />
+          <Route path="/dashboard" element={<DashboardPage transactions={convertedTransactions} currency={currency} user={user} onRefreshData={loadUserData} />} />
           <Route path="/transactions" element={<TransactionsPage currency={currency} user={user} transactions={convertedTransactions} />} />
-          <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={convertedTransactions} user={user} />} />
+          <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={convertedTransactions} user={user} onRefreshData={loadUserData} />} />
           <Route path="/horizon" element={<WealthHorizonPage transactions={convertedTransactions} currency={currency} />} />
           <Route path="/insights" element={<InsightsPage transactions={convertedTransactions} currency={currency} />} />
           <Route path="/notifications" element={<NotificationsPage user={user} currency={currency} />} />

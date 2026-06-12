@@ -1,4 +1,4 @@
-import { Transaction, Budget, Goal, Bill, Debt, PortfolioAsset, FinancialHealthScore } from '../types';
+import { Transaction, Budget, Goal, Bill, Debt, PortfolioAsset, FinancialHealthScore, User } from '../types';
 import * as firestore from './firestoreService';
 
 const STORAGE_KEYS = {
@@ -50,20 +50,41 @@ export const api = {
   },
 
   addTransaction: async (userId: string, t: Omit<Transaction, 'id'>): Promise<Transaction> => {
+    let result: Transaction;
     if (userId === 'guest_user') {
-      const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
+      result = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
       const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
-      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, newTransaction]);
-      return newTransaction;
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, result]);
+    } else {
+      try {
+        result = await firestore.addTransactionForUser(userId, t);
+      } catch (e) {
+        result = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
+        const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+        setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, result]);
+      }
     }
-    try {
-      return await firestore.addTransactionForUser(userId, t);
-    } catch (e) {
-      const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
-      const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
-      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, newTransaction]);
-      return newTransaction;
+
+    // Auto-create Debt entry for split bills
+    if (t.isSplit && t.splitWith && t.splitWith.length > 0) {
+      const splitAmount = t.amount / (t.splitCount || 2);
+      for (const person of t.splitWith) {
+        if (person.trim()) {
+          await api.addDebt(userId, {
+            person: person,
+            amount: splitAmount,
+            type: 'Lent',
+            date: t.date,
+            remainingAmount: splitAmount,
+            isCompleted: false,
+            notes: `Split from: ${t.description}`,
+            paymentMode: t.paymentMode || 'Online'
+          });
+        }
+      }
     }
+
+    return result;
   },
 
   updateTransaction: async (userId: string, id: string, t: Partial<Transaction>): Promise<Transaction> => {
@@ -426,5 +447,15 @@ export const api = {
       return;
     }
     await firestore.deleteDebtForUser(userId, id);
+  },
+
+  updateUser: async (userId: string, data: Partial<User>): Promise<void> => {
+    if (userId === 'guest_user') {
+      const userData = JSON.parse(localStorage.getItem('finsight_user') || '{}');
+      const updated = { ...userData, ...data };
+      localStorage.setItem('finsight_user', JSON.stringify(updated));
+      return;
+    }
+    await firestore.updateUserProfile(userId, data);
   }
 };

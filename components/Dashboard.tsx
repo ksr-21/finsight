@@ -18,9 +18,10 @@ interface DashboardProps {
   transactions: Transaction[];
   currency: Currency;
   user: User;
+  onRefreshData?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) => {
+const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onRefreshData }) => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -28,15 +29,32 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
   const [isSplitBillModalOpen, setIsSplitBillModalOpen] = useState(false);
   const [splittingBill, setSplittingBill] = useState<Bill | null>(null);
+  const [isEditBalanceModalOpen, setIsEditBalanceModalOpen] = useState(false);
+  const [newCashBalance, setNewCashBalance] = useState(user.initialCashBalance || 0);
+  const [newOnlineBalance, setNewOnlineBalance] = useState(user.initialOnlineBalance || 0);
 
   const handleSplitBill = async (transactionData: any) => {
     try {
       await api.addTransaction(user.uid, transactionData);
       setIsSplitBillModalOpen(false);
       setSplittingBill(null);
-      window.location.reload();
+      if (onRefreshData) onRefreshData();
     } catch (error) {
       console.error('Error splitting bill:', error);
+    }
+  };
+
+  const handleUpdateBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.updateUser(user.uid, {
+        initialCashBalance: Number(newCashBalance),
+        initialOnlineBalance: Number(newOnlineBalance)
+      });
+      setIsEditBalanceModalOpen(false);
+      if (onRefreshData) onRefreshData();
+    } catch (error) {
+      console.error('Error updating balances:', error);
     }
   };
 
@@ -121,22 +139,40 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
           color="rose"
           delay={0.1}
         />
-        <StatCard 
-          title="Cash Balance"
-          amount={cashBalance}
-          icon={<WalletIcon className="h-6 w-6" />}
-          currency={currency}
-          color="indigo"
-          delay={0.15}
-        />
-        <StatCard
-          title="Online Balance"
-          amount={onlineBalance}
-          icon={<ScaleIcon className="h-6 w-6" />} 
-          currency={currency} 
-          color="indigo"
-          delay={0.2}
-        />
+        <div className="relative group/card">
+          <StatCard
+            title="Cash Balance"
+            amount={cashBalance}
+            icon={<WalletIcon className="h-6 w-6" />}
+            currency={currency}
+            color="indigo"
+            delay={0.15}
+          />
+          <button
+            onClick={() => setIsEditBalanceModalOpen(true)}
+            className="absolute top-6 right-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/card:opacity-100 transition-opacity z-20"
+            title="Edit Balance"
+          >
+            <PlusIcon className="w-4 h-4 rotate-45" />
+          </button>
+        </div>
+        <div className="relative group/card">
+          <StatCard
+            title="Online Balance"
+            amount={onlineBalance}
+            icon={<ScaleIcon className="h-6 w-6" />}
+            currency={currency}
+            color="indigo"
+            delay={0.2}
+          />
+          <button
+            onClick={() => setIsEditBalanceModalOpen(true)}
+            className="absolute top-6 right-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/card:opacity-100 transition-opacity z-20"
+            title="Edit Balance"
+          >
+            <PlusIcon className="w-4 h-4 rotate-45" />
+          </button>
+        </div>
         <StatCard
           title="Total Owed"
           amount={totalOwed}
@@ -300,6 +336,68 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
       </div>
 
       <AnimatePresence>
+        {isEditBalanceModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditBalanceModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Edit Balances</h2>
+                  <p className="text-xs font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">Adjust initial amounts</p>
+                </div>
+                <button
+                  onClick={() => setIsEditBalanceModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <CloseIcon className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateBalance} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-gray-500 uppercase tracking-widest ml-1">Initial Cash Balance</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={newCashBalance}
+                    onChange={(e) => setNewCashBalance(Number(e.target.value))}
+                    className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 text-text-primary dark:text-white font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-gray-500 uppercase tracking-widest ml-1">Initial Online Balance</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={newOnlineBalance}
+                    onChange={(e) => setNewOnlineBalance(Number(e.target.value))}
+                    className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 text-text-primary dark:text-white font-bold"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Update Balances
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
         {isSplitBillModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div

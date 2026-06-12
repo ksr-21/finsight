@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import { PlusIcon, SearchIcon, FilterIcon, TrashIcon, EditIcon, ArrowUpIcon, ArrowDownIcon, ChartPieIcon } from '../components/icons';
 import TransactionForm from '../components/TransactionForm';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { WalletIcon, ScaleIcon } from '../components/icons';
 
 interface TransactionsPageProps {
   currency: Currency;
@@ -25,6 +26,25 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, tra
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
 
   const currencySymbol = CURRENCY_SYMBOLS[currency];
+
+  const { cashBalance, onlineBalance } = useMemo(() => {
+    return transactions.reduce(
+      (acc, t) => {
+        if (t.type === TransactionType.INCOME) {
+          if (t.paymentMode === 'Cash') acc.cashBalance += t.amount;
+          else acc.onlineBalance += t.amount;
+        } else {
+          if (t.paymentMode === 'Cash') acc.cashBalance -= t.amount;
+          else acc.onlineBalance -= t.amount;
+        }
+        return acc;
+      },
+      {
+        cashBalance: user.initialCashBalance || 0,
+        onlineBalance: user.initialOnlineBalance || 0
+      }
+    );
+  }, [transactions, user]);
 
   useEffect(() => {
     if (propTransactions) {
@@ -190,6 +210,28 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, tra
             <PlusIcon className="w-5 h-5" />
             Add Transaction
           </button>
+        </div>
+      </div>
+
+      {/* Balances Summary - Web Only Header */}
+      <div className="hidden lg:grid grid-cols-2 gap-6 mb-12">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-6 group hover:border-emerald-500/30 transition-all">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+            <WalletIcon className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest mb-1">Available Cash</p>
+            <h3 className="text-3xl font-bold text-text-primary dark:text-white font-mono">{currencySymbol}{cashBalance.toLocaleString()}</h3>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-6 group hover:border-indigo-500/30 transition-all">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+            <ScaleIcon className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest mb-1">Online Balance</p>
+            <h3 className="text-3xl font-bold text-text-primary dark:text-white font-mono">{currencySymbol}{onlineBalance.toLocaleString()}</h3>
+          </div>
         </div>
       </div>
 

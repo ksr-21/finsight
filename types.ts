@@ -81,6 +81,14 @@ export interface Bill {
   upiId?: string;
 }
 
+export interface Repayment {
+  id: string;
+  amount: number;
+  date: string;
+  paymentMode: PaymentMode;
+  notes?: string;
+}
+
 export interface Debt {
   id: string;
   person: string;
@@ -92,6 +100,7 @@ export interface Debt {
   isCompleted: boolean;
   notes?: string;
   paymentMode: PaymentMode;
+  repayments?: Repayment[];
 }
 
 export interface PortfolioAsset {
