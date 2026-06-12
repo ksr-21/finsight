@@ -5,18 +5,14 @@ import {
   WalletIcon,
   ScaleIcon,
   NewspaperIcon,
-  QrCodeIcon
+  SparklesIcon
 } from './icons';
 
-interface MobileNavProps {
-  onOpenQRScanner?: () => void;
-}
-
-const MobileNav: React.FC<MobileNavProps> = ({ onOpenQRScanner }) => {
+const MobileNav: React.FC = () => {
   const navItems = [
     { label: 'Dash', path: '/dashboard', icon: ChartPieIcon },
     { label: 'Trans', path: '/transactions', icon: WalletIcon },
-    { label: 'QR', onClick: onOpenQRScanner, icon: QrCodeIcon },
+    { label: 'Insights', path: '/insights', icon: SparklesIcon },
     { label: 'Budgets', path: '/budgets', icon: ScaleIcon },
     { label: 'News', path: '/news', icon: NewspaperIcon },
   ];
@@ -24,7 +20,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ onOpenQRScanner }) => {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pb-safe-area-inset-bottom">
       <div className="flex items-center justify-around h-16 px-2">
-        {navItems.map((item, index) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const content = (isActive: boolean) => (
             <>
@@ -35,33 +31,21 @@ const MobileNav: React.FC<MobileNavProps> = ({ onOpenQRScanner }) => {
             </>
           );
 
-          if (item.path) {
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
-                    isActive
-                      ? 'text-indigo-600 dark:text-indigo-400'
-                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                  }`
-                }
-              >
-                {({ isActive }) => content(isActive)}
-              </NavLink>
-            );
-          } else {
-            return (
-              <button
-                key={`nav-item-${index}`}
-                onClick={item.onClick}
-                className="flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                {content(false)}
-              </button>
-            );
-          }
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
+                  isActive
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                }`
+              }
+            >
+              {({ isActive }) => content(isActive)}
+            </NavLink>
+          );
         })}
       </div>
     </nav>
