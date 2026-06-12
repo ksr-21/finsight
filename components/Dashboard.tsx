@@ -122,7 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
       {/* AI Summary Banner */}
       <AiSummary transactions={transactions} budgets={budgets} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
         <StatCard 
           title="Total Income" 
           amount={totalIncome} 
@@ -141,29 +141,12 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
         />
         <div className="relative group/card">
           <StatCard
-            title="Cash Balance"
-            amount={cashBalance}
+            title="Total Balance"
+            amount={cashBalance + onlineBalance}
             icon={<WalletIcon className="h-6 w-6" />}
             currency={currency}
             color="indigo"
             delay={0.15}
-          />
-          <button
-            onClick={() => setIsEditBalanceModalOpen(true)}
-            className="absolute top-6 right-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/card:opacity-100 transition-opacity z-20"
-            title="Edit Balance"
-          >
-            <PlusIcon className="w-4 h-4 rotate-45" />
-          </button>
-        </div>
-        <div className="relative group/card">
-          <StatCard
-            title="Online Balance"
-            amount={onlineBalance}
-            icon={<ScaleIcon className="h-6 w-6" />}
-            currency={currency}
-            color="indigo"
-            delay={0.2}
           />
           <button
             onClick={() => setIsEditBalanceModalOpen(true)}
@@ -179,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
           icon={<ArrowUpIcon className="h-6 w-6" />}
           currency={currency}
           color="emerald"
-          delay={0.25}
+          delay={0.2}
         />
         <StatCard
           title="Total Owe"
@@ -187,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
           icon={<ArrowDownIcon className="h-6 w-6" />}
           currency={currency}
           color="rose"
-          delay={0.28}
+          delay={0.25}
         />
         <div className="relative group/card">
           <StatCard

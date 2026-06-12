@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, BellIcon, WalletIcon, ScaleIcon } from './icons';
+import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, BellIcon, WalletIcon, ScaleIcon, SparklesIcon } from './icons';
 import { Currency, User, Transaction, TransactionType, CURRENCY_SYMBOLS } from '../types';
 import { useMemo } from 'react';
 
@@ -19,22 +19,17 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, currency, onCurrencyChange, onAddTransaction, onOpenProfile, transactions }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { cashBalance, onlineBalance } = useMemo(() => {
+  const totalBalance = useMemo(() => {
     return transactions.reduce(
       (acc, t) => {
         if (t.type === TransactionType.INCOME) {
-          if (t.paymentMode === 'Cash') acc.cashBalance += t.amount;
-          else acc.onlineBalance += t.amount;
+          acc += t.amount;
         } else {
-          if (t.paymentMode === 'Cash') acc.cashBalance -= t.amount;
-          else acc.onlineBalance -= t.amount;
+          acc -= t.amount;
         }
         return acc;
       },
-      {
-        cashBalance: user.initialCashBalance || 0,
-        onlineBalance: user.initialOnlineBalance || 0
-      }
+      (user.initialCashBalance || 0) + (user.initialOnlineBalance || 0)
     );
   }, [transactions, user]);
 
@@ -92,12 +87,8 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
             <div className="lg:hidden flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 mr-1">
               <div className="flex flex-col items-end">
                 <div className="flex items-center gap-1">
-                  <WalletIcon className="w-2.5 h-2.5 text-emerald-500" />
-                  <span className="text-[10px] font-bold text-text-primary dark:text-white">{currencySymbol}{Math.round(cashBalance).toLocaleString()}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <ScaleIcon className="w-2.5 h-2.5 text-indigo-500" />
-                  <span className="text-[10px] font-bold text-text-primary dark:text-white">{currencySymbol}{Math.round(onlineBalance).toLocaleString()}</span>
+                  <WalletIcon className="w-2.5 h-2.5 text-indigo-500" />
+                  <span className="text-xs font-bold text-text-primary dark:text-white">{currencySymbol}{Math.round(totalBalance).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -161,6 +152,14 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
               <PlusIcon className="w-3.5 h-3.5" />
               <span>Add</span>
             </button>
+
+            <NavLink
+              to="/insights"
+              className="lg:hidden p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 active:scale-95"
+              aria-label="Insights"
+            >
+              <SparklesIcon className="h-4 w-4" />
+            </NavLink>
 
             <button
               onClick={onAddTransaction}
