@@ -41,17 +41,15 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
   const balance = transactions.reduce((acc, t) => acc + (t.type === 'Income' ? t.amount : -t.amount), 0);
 
-  const convertedTransactions = transactions.map(t => {
-    // Current app architecture seems to store amounts in a "base" currency (USD usually)
-    // or whatever was active when the transaction was added.
-    // However, the requirement is "when they change the currency the amount must be get converted"
-    // Let's assume the stored transactions are in a reference currency or we need to track their original currency.
-    // For now, let's treat the transactions as having been in the PREVIOUS currency or a fixed reference.
-    // Since I don't see originalCurrency in Transaction type, I'll assume they are stored in USD.
+  const rate = exchangeRates[currency] || 1;
 
-    // If currency is USD, return as is.
-    // If currency is INR, and we assume stored is USD, then multiply by rate.
-    const rate = exchangeRates[currency] || 1;
+  const convertedUser = useMemo(() => ({
+    ...user,
+    initialCashBalance: (user.initialCashBalance || 0) * rate,
+    initialOnlineBalance: (user.initialOnlineBalance || 0) * rate
+  }), [user, rate]);
+
+  const convertedTransactions = transactions.map(t => {
     return {
       ...t,
       amount: t.amount * rate
@@ -115,14 +113,18 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
 
   const handleAddTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    await api.addTransaction(user.uid, transaction);
+    // Convert amount back to USD before saving
+    const baseAmount = currencyService.convertToBase(transaction.amount, currency, exchangeRates);
+    await api.addTransaction(user.uid, { ...transaction, amount: baseAmount });
     await loadUserData();
     setIsFormModalOpen(false);
   };
 
   const handleEditTransaction = async (transactionData: Omit<Transaction, 'id'>) => {
     if (editingTransaction) {
-      await api.updateTransaction(user.uid, editingTransaction.id, transactionData);
+      // Convert amount back to USD before saving
+      const baseAmount = currencyService.convertToBase(transactionData.amount, currency, exchangeRates);
+      await api.updateTransaction(user.uid, editingTransaction.id, { ...transactionData, amount: baseAmount });
       await loadUserData();
       setEditingTransaction(null);
       setIsFormModalOpen(false);
@@ -193,7 +195,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
       <ScrollToTop />
       <Header 
-        user={user}
+        user={convertedUser}
         isDarkMode={isDarkMode} 
         toggleDarkMode={toggleDarkMode} 
         currency={currency}
@@ -206,9 +208,9 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       <main className="max-w-7xl mx-auto pb-24 md:pb-8">
         <Routes>
           <Route path="/" element={<Navigate to="/transactions" replace />} />
-          <Route path="/dashboard" element={<DashboardPage transactions={convertedTransactions} currency={currency} user={user} onRefreshData={loadUserData} />} />
-          <Route path="/transactions" element={<TransactionsPage currency={currency} user={user} transactions={convertedTransactions} />} />
-          <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={convertedTransactions} user={user} onRefreshData={loadUserData} />} />
+          <Route path="/dashboard" element={<DashboardPage transactions={convertedTransactions} currency={currency} user={convertedUser} onRefreshData={loadUserData} />} />
+          <Route path="/transactions" element={<TransactionsPage currency={currency} user={convertedUser} transactions={convertedTransactions} onRefresh={loadUserData} onAddTransaction={handleAddTransaction} />} />
+          <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={convertedTransactions} user={convertedUser} onRefreshData={loadUserData} />} />
           <Route path="/horizon" element={<WealthHorizonPage transactions={convertedTransactions} currency={currency} />} />
           <Route path="/insights" element={<InsightsPage transactions={convertedTransactions} currency={currency} />} />
           <Route path="/notifications" element={<NotificationsPage user={user} currency={currency} />} />

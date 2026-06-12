@@ -55,6 +55,7 @@ const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency
       return (now.getTime() - tDate.getTime()) / (1000 * 60 * 60 * 24) <= 30;
     });
 
+    // Note: transactions and portfolio are already converted to the active currency in props
     const monthlyIncome = last30Days.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
     const monthlyExpense = last30Days.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
     const cashBalance = transactions.reduce((sum, t) => t.type === TransactionType.INCOME ? sum + t.amount : sum - t.amount, 0);

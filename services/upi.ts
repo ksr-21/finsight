@@ -23,11 +23,8 @@ export interface UPIParams {
 const formatUPIAmount = (am: string): string => {
   const num = parseFloat(am);
   if (isNaN(num)) return am;
-  const rounded = Number(num.toFixed(2));
-  if (Number.isInteger(rounded)) {
-    return rounded.toString();
-  }
-  return rounded.toFixed(2);
+  // ALWAYS return 2 decimal places for consistent parsing by all UPI apps (GPay/PhonePe)
+  return num.toFixed(2);
 };
 
 export const generateUPIUrl = (
@@ -44,9 +41,10 @@ export const generateUPIUrl = (
   const formattedAmount = formatUPIAmount(am);
 
   // Parameters that are tied to specific merchant transactions/signatures.
-  // 'sign' and 'url' are ALWAYS stripped as they almost certainly cause GPay security declines
-  // when the intent is launched from a 3rd party app.
-  const alwaysStrip = ['sign', 'url'];
+  // 'sign' and 'url' are ALWAYS stripped if amount is modified as they are signatures.
+  // However, if amount is NOT modified, we should keep them if they exist in baseParams
+  // because some merchants require them for validation.
+  const signatureParams = ['sign', 'url'];
 
   // These are stripped if the amount is modified, as they are tied to the original transaction.
   const conditionalStrip = ['tr', 'tid', 'mc', 'sid', 'qrMedium', 'mode', 'orgid'];
@@ -58,7 +56,7 @@ export const generateUPIUrl = (
   Object.entries(baseParams).forEach(([key, value]) => {
     if (!value) return;
 
-    if (alwaysStrip.includes(key)) return;
+    if (isAmountModified && signatureParams.includes(key)) return;
     if (isAmountModified && conditionalStrip.includes(key)) return;
 
     // Always skip these as we override them
@@ -92,15 +90,24 @@ export const generateUPIUrl = (
   // Add ordered params
   order.forEach(key => {
     if (finalParams[key]) {
-      queryString.push(`${key}=${encodeURIComponent(finalParams[key])}`);
+      let val = finalParams[key];
+      // CRITICAL: Many UPI apps fail to parse the UPI ID (pa) if the '@' is encoded as %40
+      // We encode and then specifically revert %40 to @ for max compatibility
+      let encodedVal = encodeURIComponent(val).replace(/\+/g, '%20');
+      if (key === 'pa') {
+        encodedVal = encodedVal.replace(/%40/g, '@');
+      }
+      queryString.push(`${key}=${encodedVal}`);
       delete finalParams[key];
     }
   });
 
   // Add remaining params
   Object.entries(finalParams).forEach(([key, value]) => {
-    queryString.push(`${key}=${encodeURIComponent(value)}`);
+    queryString.push(`${key}=${encodeURIComponent(value).replace(/\+/g, '%20')}`);
   });
 
-  return `upi://pay?${queryString.join('&')}`;
+  const finalUrl = `upi://pay?${queryString.join('&')}`;
+  console.log('[UPI] Generated URL:', finalUrl);
+  return finalUrl;
 };

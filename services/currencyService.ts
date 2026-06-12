@@ -45,6 +45,19 @@ class CurrencyService {
 
     return amount; // Fallback
   }
+
+  convertToBase(amount: number, from: Currency, rates: Record<string, number>): number {
+    if (from === Currency.USD) return amount;
+
+    // If rates are based on USD, then rates[from] is units of 'from' per 1 USD.
+    // So 1 unit of 'from' = 1 / rates[from] USD.
+    const rate = rates[from];
+    if (rate && rate > 0) {
+      return amount / rate;
+    }
+
+    return amount;
+  }
 }
 
 export const currencyService = new CurrencyService();

@@ -11,9 +11,17 @@ interface TransactionsPageProps {
   currency: Currency;
   user: User;
   transactions?: Transaction[];
+  onRefresh?: () => void;
+  onAddTransaction?: (t: Omit<Transaction, 'id'>) => Promise<void>;
 }
 
-const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, transactions: propTransactions }) => {
+const TransactionsPage: React.FC<TransactionsPageProps> = ({
+  currency,
+  user,
+  transactions: propTransactions,
+  onRefresh,
+  onAddTransaction
+}) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -68,8 +76,13 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, tra
 
   const handleAddTransaction = async (t: Omit<Transaction, 'id'>) => {
     try {
-      await api.addTransaction(user.uid, t);
-      fetchTransactions();
+      if (onAddTransaction) {
+        await onAddTransaction(t);
+      } else {
+        await api.addTransaction(user.uid, t);
+        if (onRefresh) onRefresh();
+        else fetchTransactions();
+      }
       setShowForm(false);
     } catch (error) {
       console.error('Error adding transaction:', error);
@@ -79,7 +92,8 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, tra
   const handleDeleteTransaction = async (id: string) => {
     try {
       await api.deleteTransaction(user.uid, id);
-      fetchTransactions();
+      if (onRefresh) onRefresh();
+      else fetchTransactions();
     } catch (error) {
       console.error('Error deleting transaction:', error);
     }
@@ -89,7 +103,8 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ currency, user, tra
     try {
       await Promise.all(selectedTransactions.map(id => api.deleteTransaction(user.uid, id)));
       setSelectedTransactions([]);
-      fetchTransactions();
+      if (onRefresh) onRefresh();
+      else fetchTransactions();
     } catch (error) {
       console.error('Error bulk deleting:', error);
     }
