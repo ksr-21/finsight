@@ -47,7 +47,10 @@ export const generateUPIUrl = (
   const signatureParams = ['sign', 'url'];
 
   // These are stripped if the amount is modified, as they are tied to the original transaction.
-  const conditionalStrip = ['tr', 'tid', 'mc', 'sid', 'qrMedium', 'mode', 'orgid'];
+  // HOWEVER: 'mc' (Merchant Code) and 'tr' (Transaction Reference) are often CRITICAL
+  // for merchant validation in GPay/PhonePe. Stripping them can cause "Security Warning"
+  // or "Limit Exceeded" errors. We now only strip 'sign' and 'url'.
+  const conditionalStrip = ['tid', 'sid', 'qrMedium', 'mode', 'orgid'];
 
   // 3. Build the parameter map
   const finalParams: Record<string, string> = {};

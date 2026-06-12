@@ -151,17 +151,33 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData, ex
     }
 
     const cleanUpiId = upiId.trim();
-    const isAmountModified = scannedAmount !== null && parseFloat(amount) !== parseFloat(scannedAmount);
+
+    // Determine if amount was modified before conversion to avoid precision issues
+    const isAmountModified = scannedAmount !== null &&
+      Math.abs(parseFloat(amount) - parseFloat(scannedAmount)) > 0.001;
 
     // Convert app amount back to INR for UPI payment
-    const paymentAmountINR = currencyService.convert(
-      parseFloat(amount),
-      currency,
-      Currency.INR,
-      exchangeRates
-    ).toFixed(2);
+    let paymentAmountINR: string;
 
-    console.log('[BillForm] Paying UPI:', { cleanUpiId, amount, paymentAmountINR, name });
+    if (!isAmountModified && upiParams.am) {
+      // Use exact original amount from QR if possible
+      paymentAmountINR = parseFloat(upiParams.am).toFixed(2);
+    } else {
+      paymentAmountINR = currencyService.convert(
+        parseFloat(amount),
+        currency,
+        Currency.INR,
+        exchangeRates
+      ).toFixed(2);
+    }
+
+    console.log('[BillForm] Paying UPI:', {
+      cleanUpiId,
+      amount,
+      paymentAmountINR,
+      originalAm: upiParams.am,
+      isAmountModified
+    });
 
     const upiUrl = generateUPIUrl(upiParams, {
       pa: cleanUpiId,
