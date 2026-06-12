@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { aiService } from '../services/aiService';
 import { Transaction, Currency, CURRENCY_SYMBOLS } from '../types';
 import { SparklesIcon, XMarkIcon, PaperAirplaneIcon, UserIcon, BotIcon } from './icons';
+import { useNavigate } from 'react-router-dom';
 
 interface AiChatbotProps {
   transactions: Transaction[];
@@ -18,6 +19,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -54,7 +56,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
   };
 
   return (
-    <div className="hidden md:block fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-[60] md:bottom-8 md:right-8">
+    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-[60] md:bottom-8 md:right-8">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -143,7 +145,13 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (window.innerWidth < 768) {
+            navigate('/chat');
+          } else {
+            setIsOpen(!isOpen);
+          }
+        }}
         className="group relative flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-2xl shadow-indigo-500/40 md:h-16 md:w-16 md:rounded-[1.5rem]"
         aria-label={isOpen ? 'Close FinSight AI chat' : 'Open FinSight AI chat'}
       >

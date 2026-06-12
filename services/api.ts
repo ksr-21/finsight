@@ -1,4 +1,4 @@
-import { Transaction, Budget, Goal, Bill, Debt, PortfolioAsset, FinancialHealthScore, User } from '../types';
+import { Transaction, Budget, Goal, Bill, Debt, PortfolioAsset, FinancialHealthScore, User, ChatMessage } from '../types';
 import * as firestore from './firestoreService';
 
 const STORAGE_KEYS = {
@@ -38,12 +38,17 @@ const setLocal = (userId: string, key: string, data: any) => {
 
 export const api = {
   // Transactions
-  getTransactions: async (userId: string): Promise<Transaction[]> => {
+  getTransactions: async (userId: string, forceRefresh: boolean = true): Promise<Transaction[]> => {
     if (userId === 'guest_user') {
       return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
     }
+    if (!forceRefresh) {
+        return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+    }
     try {
-      return await firestore.getTransactionsForUser(userId);
+      const trans = await firestore.getTransactionsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, trans);
+      return trans;
     } catch (e) {
       console.warn("Using offline transactions", e);
       return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);

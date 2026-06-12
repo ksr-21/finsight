@@ -21,7 +21,7 @@ import {
     orderBy
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Transaction, Currency, Budget, Goal, Bill, PortfolioAsset, Debt, User } from '../types';
+import { Transaction, Currency, Budget, Goal, Bill, PortfolioAsset, Debt, User, ChatMessage } from '../types';
 
 interface UserPreferences {
     isDarkMode: boolean;
