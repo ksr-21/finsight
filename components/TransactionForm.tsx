@@ -12,6 +12,7 @@ import {
   PlusIcon,
   TrashIcon,
   SparklesIcon,
+  CheckCircleIcon,
 } from './icons';
 import QRScanner from './QRScanner';
 
@@ -175,10 +176,15 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   };
 
+  const [isUPISuccess, setIsUPISuccess] = useState(false);
+
   const handlePayUPI = () => {
     if (!amount || !upiId) return;
     const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(description || 'Payment')}&am=${amount}&cu=INR`;
     window.location.href = upiUrl;
+    if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid and save.")) {
+      setIsUPISuccess(true);
+    }
   };
 
   return (
@@ -478,14 +484,19 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   Recipient UPI ID
                 </label>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="example@upi"
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    className="flex-1 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
-                  />
-                  {upiId && amount && (
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="example@upi"
+                      value={upiId}
+                      onChange={(e) => setUpiId(e.target.value)}
+                      className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
+                    />
+                    {isUPISuccess && (
+                      <CheckCircleIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                    )}
+                  </div>
+                  {upiId && amount && !isUPISuccess && (
                     <button
                       type="button"
                       onClick={handlePayUPI}

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, BellIcon } from './icons';
-import { Currency, User } from '../types';
+import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, BellIcon, WalletIcon, ScaleIcon } from './icons';
+import { Currency, User, Transaction, TransactionType, CURRENCY_SYMBOLS } from '../types';
+import { useMemo } from 'react';
 
 interface HeaderProps {
   user: User;
@@ -12,17 +13,38 @@ interface HeaderProps {
   onCurrencyChange: (currency: Currency) => void;
   onAddTransaction: () => void;
   onOpenProfile: () => void;
+  transactions: Transaction[];
 }
 
-const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, currency, onCurrencyChange, onAddTransaction, onOpenProfile }) => {
+const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, currency, onCurrencyChange, onAddTransaction, onOpenProfile, transactions }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { cashBalance, onlineBalance } = useMemo(() => {
+    return transactions.reduce(
+      (acc, t) => {
+        if (t.type === TransactionType.INCOME) {
+          if (t.paymentMode === 'Cash') acc.cashBalance += t.amount;
+          else acc.onlineBalance += t.amount;
+        } else {
+          if (t.paymentMode === 'Cash') acc.cashBalance -= t.amount;
+          else acc.onlineBalance -= t.amount;
+        }
+        return acc;
+      },
+      {
+        cashBalance: user.initialCashBalance || 0,
+        onlineBalance: user.initialOnlineBalance || 0
+      }
+    );
+  }, [transactions, user]);
+
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   const navItems = [
     { label: 'Transactions', path: '/transactions' },
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Budgets', path: '/budgets' },
     { label: 'Insights', path: '/insights' },
-    { label: 'Notifications', path: '/notifications' },
     { label: 'Horizon', path: '/horizon' },
     { label: 'News', path: '/news' },
   ];
@@ -66,6 +88,20 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
           </div>
           
           <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+            {/* Balance Display for Mobile */}
+            <div className="lg:hidden flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 mr-1">
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-1">
+                  <WalletIcon className="w-2.5 h-2.5 text-emerald-500" />
+                  <span className="text-[10px] font-bold text-text-primary dark:text-white">{currencySymbol}{Math.round(cashBalance).toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <ScaleIcon className="w-2.5 h-2.5 text-indigo-500" />
+                  <span className="text-[10px] font-bold text-text-primary dark:text-white">{currencySymbol}{Math.round(onlineBalance).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Currency Selector - Hardware Style (Recipe 3) */}
             <div className="hidden sm:flex items-center bg-gray-100 dark:bg-gray-800/50 rounded-xl sm:rounded-2xl p-0.5 sm:p-1 border border-gray-200 dark:border-gray-700 shadow-inner">
               <button 
@@ -155,7 +191,7 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
             {/* Mobile Menu Button */}
             <NavLink
               to="/notifications"
-              className="lg:hidden p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-400 border border-gray-100 dark:border-gray-700 relative"
+              className="md:hidden p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-400 border border-gray-100 dark:border-gray-700 relative"
             >
               <BellIcon className="h-4 w-4" />
               <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-rose-500 rounded-full" />
