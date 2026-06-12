@@ -272,13 +272,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     params.set('am', formattedAmount);
     params.set('cu', 'INR');
 
-    // Add transaction reference if missing (some banks require this for intent)
-    if (!params.has('tr')) {
-      params.set('tr', 'TR' + Date.now() + Math.floor(Math.random() * 1000));
-    }
-
-    if (description && !params.has('pn')) {
-      params.set('pn', description);
+    if (description) {
+      params.set('tn', description);
     }
 
     const upiUrl = `upi://pay?${params.toString()}`;
@@ -286,8 +281,19 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     // Mark that we are waiting for payment before leaving
     setIsWaitingForPayment(true);
 
-    // Attempt to open UPI app
-    window.location.href = upiUrl;
+    // Use a hidden anchor element for more reliable redirection on mobile browsers
+    const link = document.createElement('a');
+    link.href = upiUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+
+    // Clean up
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 100);
 
     // Fallback for some browsers where visibilitychange might not trigger as expected
     // or if the user doesn't actually leave the app (e.g. UPI app fails to open)
