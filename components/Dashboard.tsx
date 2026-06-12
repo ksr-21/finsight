@@ -12,6 +12,7 @@ import RecentTransactions from './RecentTransactions';
 import AiSummary from './AiSummary';
 import { ArrowUpIcon, ArrowDownIcon, ScaleIcon, WalletIcon, SparklesIcon, PlusIcon, CloseIcon } from './icons';
 import { api } from '../services/api';
+import { currencyService } from '../services/currencyService';
 import TransactionForm from './TransactionForm';
 import { formatAmount } from '../services/utils';
 
@@ -31,12 +32,24 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
   const [isSplitBillModalOpen, setIsSplitBillModalOpen] = useState(false);
   const [splittingBill, setSplittingBill] = useState<Bill | null>(null);
   const [isEditBalanceModalOpen, setIsEditBalanceModalOpen] = useState(false);
-  const [newCashBalance, setNewCashBalance] = useState(user.initialCashBalance || 0);
-  const [newOnlineBalance, setNewOnlineBalance] = useState(user.initialOnlineBalance || 0);
+  const [newCashBalance, setNewCashBalance] = useState(0);
+  const [newOnlineBalance, setNewOnlineBalance] = useState(0);
+
+  useEffect(() => {
+    if (isEditBalanceModalOpen) {
+      // Note: user object is already converted to active currency in props
+      setNewCashBalance(user.initialCashBalance || 0);
+      setNewOnlineBalance(user.initialOnlineBalance || 0);
+    }
+  }, [isEditBalanceModalOpen, user.initialCashBalance, user.initialOnlineBalance]);
 
   const handleSplitBill = async (transactionData: any) => {
     try {
-      await api.addTransaction(user.uid, transactionData);
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
+      const baseAmount = currencyService.convertToBase(transactionData.amount, currency, rates);
+
+      await api.addTransaction(user.uid, { ...transactionData, amount: baseAmount });
       setIsSplitBillModalOpen(false);
       setSplittingBill(null);
       if (onRefreshData) onRefreshData();
@@ -48,9 +61,15 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
   const handleUpdateBalance = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const rateDataRates = await currencyService.getRates(Currency.USD);
+      const rates = rateDataRates?.rates || {};
+
+      const baseCash = currencyService.convertToBase(newCashBalance, currency, rates);
+      const baseOnline = currencyService.convertToBase(newOnlineBalance, currency, rates);
+
       await api.updateUser(user.uid, {
-        initialCashBalance: Number(newCashBalance),
-        initialOnlineBalance: Number(newOnlineBalance)
+        initialCashBalance: baseCash,
+        initialOnlineBalance: baseOnline
       });
       setIsEditBalanceModalOpen(false);
       if (onRefreshData) onRefreshData();

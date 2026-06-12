@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Budget, Goal, Currency, CURRENCY_SYMBOLS, Category, User, TransactionType, Debt } from '../types';
 import { api } from '../services/api';
+import { currencyService } from '../services/currencyService';
 import { PlusIcon, TargetIcon, WalletIcon, TrendingUpIcon, CloseIcon, EditIcon, TrashIcon, CalendarIcon, SparklesIcon, ScaleIcon } from '../components/icons';
 import BudgetForm from '../components/BudgetForm';
 import GoalForm from '../components/GoalForm';
@@ -26,6 +27,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
   const [debts, setDebts] = useState<Debt[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   
   const [activeTab, setActiveTab] = useState<'budgets_goals' | 'bills' | 'portfolio' | 'debts'>('budgets_goals');
 
@@ -58,7 +60,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currency]);
 
   useEffect(() => {
     const root = document.getElementById('root');
@@ -69,18 +71,25 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const fetchData = async () => {
     try {
-      const [bData, gData, billData, portfolioData, debtData] = await Promise.all([
+      const [bData, gData, billData, portfolioData, debtData, rates] = await Promise.all([
         api.getBudgets(user.uid),
         api.getGoals(user.uid),
         api.getBills(user.uid),
         api.getPortfolio(user.uid),
-        api.getDebts(user.uid)
+        api.getDebts(user.uid),
+        currencyService.getRates(Currency.USD)
       ]);
-      setBudgets(bData);
-      setGoals(gData);
-      setBills(billData);
-      setPortfolio(portfolioData);
-      setDebts(debtData);
+
+      if (rates) setExchangeRates(rates.rates);
+
+      const rate = rates?.rates[currency] || 1;
+
+      setBudgets(bData.map(b => ({ ...b, amount: b.amount * rate })));
+      setGoals(gData.map(g => ({ ...g, targetAmount: g.targetAmount * rate, currentAmount: g.currentAmount * rate })));
+      setBills(billData.map(b => ({ ...b, amount: b.amount * rate })));
+      setPortfolio(portfolioData.map(p => ({ ...p, averagePrice: p.averagePrice * rate, currentPrice: p.currentPrice * rate })));
+      setDebts(debtData.map(d => ({ ...d, amount: d.amount * rate, remainingAmount: d.remainingAmount * rate })));
+
     } catch (error) {
       console.error('Error fetching budgets/goals:', error);
     } finally {
@@ -90,10 +99,15 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const handleBudgetSubmit = async (b: Omit<Budget, 'id'>) => {
     try {
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
+      const baseAmount = currencyService.convertToBase(b.amount, currency, rates);
+      const dataToSave = { ...b, amount: baseAmount };
+
       if (editingBudget) {
-        await api.updateBudget(user.uid, editingBudget.id, b);
+        await api.updateBudget(user.uid, editingBudget.id, dataToSave);
       } else {
-        await api.addBudget(user.uid, b);
+        await api.addBudget(user.uid, dataToSave);
       }
       setIsBudgetModalOpen(false);
       setEditingBudget(null);
@@ -105,10 +119,16 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const handleGoalSubmit = async (g: Omit<Goal, 'id'>) => {
     try {
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
+      const baseTargetAmount = currencyService.convertToBase(g.targetAmount, currency, rates);
+      const baseCurrentAmount = currencyService.convertToBase(g.currentAmount, currency, rates);
+      const dataToSave = { ...g, targetAmount: baseTargetAmount, currentAmount: baseCurrentAmount };
+
       if (editingGoal) {
-        await api.updateGoal(user.uid, editingGoal.id, g);
+        await api.updateGoal(user.uid, editingGoal.id, dataToSave);
       } else {
-        await api.addGoal(user.uid, g);
+        await api.addGoal(user.uid, dataToSave);
       }
       setIsGoalModalOpen(false);
       setEditingGoal(null);
@@ -131,10 +151,15 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const handleBillSubmit = async (billData: Omit<Bill, 'id'>) => {
     try {
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
+      const baseAmount = currencyService.convertToBase(billData.amount, currency, rates);
+      const dataToSave = { ...billData, amount: baseAmount };
+
       if (editingBill) {
-        await api.updateBill(user.uid, editingBill.id, billData);
+        await api.updateBill(user.uid, editingBill.id, dataToSave);
       } else {
-        await api.addBill(user.uid, billData);
+        await api.addBill(user.uid, dataToSave);
       }
       setIsBillModalOpen(false);
       setEditingBill(null);
@@ -157,10 +182,16 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const handlePortfolioSubmit = async (assetData: Omit<PortfolioAsset, 'id'>) => {
     try {
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
+      const baseAveragePrice = currencyService.convertToBase(assetData.averagePrice, currency, rates);
+      const baseCurrentPrice = currencyService.convertToBase(assetData.currentPrice, currency, rates);
+      const dataToSave = { ...assetData, averagePrice: baseAveragePrice, currentPrice: baseCurrentPrice };
+
       if (editingPortfolio) {
-        await api.updatePortfolioAsset(user.uid, editingPortfolio.id, assetData);
+        await api.updatePortfolioAsset(user.uid, editingPortfolio.id, dataToSave);
       } else {
-        await api.addPortfolioAsset(user.uid, assetData);
+        await api.addPortfolioAsset(user.uid, dataToSave);
       }
       setIsPortfolioModalOpen(false);
       setEditingPortfolio(null);
@@ -183,14 +214,20 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const handleDebtSubmit = async (debtData: Omit<Debt, 'id'>) => {
     try {
+        const rateData = await currencyService.getRates(Currency.USD);
+        const rates = rateData?.rates || {};
+        const baseAmount = currencyService.convertToBase(debtData.amount, currency, rates);
+        const baseRemainingAmount = currencyService.convertToBase(debtData.remainingAmount, currency, rates);
+        const dataToSave = { ...debtData, amount: baseAmount, remainingAmount: baseRemainingAmount };
+
         if (editingDebt) {
-            await api.updateDebt(user.uid, editingDebt.id, debtData);
+            await api.updateDebt(user.uid, editingDebt.id, dataToSave);
         } else {
-            const newDebt = await api.addDebt(user.uid, debtData);
+            await api.addDebt(user.uid, dataToSave);
             // Also add a transaction for the initial debt
             await api.addTransaction(user.uid, {
                 description: `${debtData.type === 'Lent' ? 'Lent money to' : 'Borrowed money from'} ${debtData.person}`,
-                amount: debtData.amount,
+                amount: baseAmount,
                 type: debtData.type === 'Lent' ? TransactionType.EXPENSE : TransactionType.INCOME,
                 category: 'Other',
                 date: debtData.date,
@@ -223,15 +260,18 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
     if (!repayingDebt || !repaymentAmount) return;
 
     try {
+        const rateData = await currencyService.getRates(Currency.USD);
+        const rates = rateData?.rates || {};
         const amount = parseFloat(repaymentAmount);
         if (isNaN(amount) || amount <= 0) return;
 
-        const newRemaining = Math.max(0, repayingDebt.remainingAmount - amount);
+        const baseAmount = currencyService.convertToBase(amount, currency, rates);
+        const newRemaining = Math.max(0, repayingDebt.remainingAmount - baseAmount);
         const isCompleted = newRemaining === 0;
 
         const repayment = {
             id: Math.random().toString(36).substr(2, 9),
-            amount,
+            amount: baseAmount,
             date: new Date().toISOString().split('T')[0],
             paymentMode: repayingDebt.paymentMode
         };
@@ -245,7 +285,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         // Add a transaction for the repayment
         await api.addTransaction(user.uid, {
             description: `${repayingDebt.type === 'Lent' ? 'Repayment from' : 'Repayment to'} ${repayingDebt.person}`,
-            amount: amount,
+            amount: baseAmount,
             type: repayingDebt.type === 'Lent' ? TransactionType.INCOME : TransactionType.EXPENSE,
             category: 'Other',
             date: new Date().toISOString().split('T')[0],
@@ -279,17 +319,21 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
     if (!contributingGoal || !contributionAmount) return;
 
     try {
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
       const amount = parseFloat(contributionAmount);
       if (isNaN(amount) || amount <= 0) return;
 
+      const baseAmount = currencyService.convertToBase(amount, currency, rates);
+
       await api.updateGoal(user.uid, contributingGoal.id, {
-        currentAmount: contributingGoal.currentAmount + amount
+        currentAmount: contributingGoal.currentAmount + baseAmount
       });
 
       // Also add a transaction for the contribution
       await api.addTransaction(user.uid, {
         description: `Goal Contribution: ${contributingGoal.name}`,
-        amount: amount,
+        amount: baseAmount,
         type: 'Expense' as any, // Contributions to goals are like "expenses" for the cash balance
         category: 'Investments', // Or a special category
         date: new Date().toISOString().split('T')[0],
@@ -308,7 +352,11 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const handleSplitBill = async (transactionData: any) => {
     try {
-      await api.addTransaction(user.uid, transactionData);
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
+      const baseAmount = currencyService.convertToBase(transactionData.amount, currency, rates);
+
+      await api.addTransaction(user.uid, { ...transactionData, amount: baseAmount });
       setIsSplitBillModalOpen(false);
       setSplittingBill(null);
       if (onRefreshData) onRefreshData();

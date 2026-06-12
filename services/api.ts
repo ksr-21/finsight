@@ -67,6 +67,7 @@ export const api = {
 
     // Auto-create Debt entry for split bills
     if (t.isSplit && t.splitWith && t.splitWith.length > 0) {
+      // t.amount is already in base currency (USD)
       const splitAmount = t.amount / (t.splitCount || 2);
       for (const person of t.splitWith) {
         if (person.trim()) {

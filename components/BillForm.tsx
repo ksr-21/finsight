@@ -40,13 +40,13 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     e.preventDefault();
     if (!name || !amount || !dueDate) return;
     onSubmit({
-      name,
+      name: name.trim(),
       amount: parseFloat(amount),
       dueDate,
       category,
       isPaid,
       paymentMode,
-      upiId: paymentMode === 'Online' ? upiId : undefined
+      upiId: paymentMode === 'Online' ? upiId.trim() : undefined
     });
   };
 
@@ -101,13 +101,13 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
         setIsPaid(true);
         if (name && amount && dueDate) {
           onSubmit({
-            name,
+            name: name.trim(),
             amount: parseFloat(amount),
             dueDate,
             category,
             isPaid: true,
             paymentMode: 'Online',
-            upiId: upiId
+            upiId: upiId.trim()
           });
         }
       }
@@ -136,12 +136,15 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
       return;
     }
 
+    const cleanUpiId = upiId.trim();
     const isAmountModified = scannedAmount !== null && parseFloat(amount) !== parseFloat(scannedAmount);
 
+    console.log('[BillForm] Paying UPI:', { cleanUpiId, amount, name });
+
     const upiUrl = generateUPIUrl(upiParams, {
-      pa: upiId,
+      pa: cleanUpiId,
       am: amount,
-      description: name,
+      description: name.trim(),
       isAmountModified
     });
 

@@ -231,7 +231,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             splitCount,
             splitWith: isSplit ? splitWith.filter(s => s.trim() !== '') : [],
             paymentMode,
-            upiId: upiId,
+            upiId: upiId.trim(),
           });
         }
       }
@@ -261,12 +261,15 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       return;
     }
 
+    const cleanUpiId = upiId.trim();
     const isAmountModified = scannedAmount !== null && parseFloat(finalAmount) !== parseFloat(scannedAmount);
 
+    console.log('[TransactionForm] Paying UPI:', { cleanUpiId, finalAmount, description });
+
     const upiUrl = generateUPIUrl(upiParams, {
-      pa: upiId,
+      pa: cleanUpiId,
       am: finalAmount,
-      description: description || category,
+      description: (description || category).trim(),
       isAmountModified
     });
 
