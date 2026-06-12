@@ -277,17 +277,36 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     }
 
     const cleanUpiId = upiId.trim();
-    const isAmountModified = scannedAmount !== null && parseFloat(finalAmount) !== parseFloat(scannedAmount);
+
+    // CRITICAL: Determine if amount was modified BEFORE any currency conversion
+    // to avoid precision loss issues.
+    const isAmountModified = scannedAmount !== null &&
+      Math.abs(parseFloat(finalAmount) - parseFloat(scannedAmount)) > 0.001;
 
     // Convert app amount back to INR for UPI payment
-    const paymentAmountINR = currencyService.convert(
-      parseFloat(finalAmount),
-      currency,
-      Currency.INR,
-      exchangeRates
-    ).toFixed(2);
+    // If it was NOT modified, we should ideally use the original scanned INR amount
+    // to avoid rounding errors that trigger security warnings.
+    let paymentAmountINR: string;
 
-    console.log('[TransactionForm] Paying UPI:', { cleanUpiId, finalAmount, paymentAmountINR, description });
+    if (!isAmountModified && upiParams.am) {
+      // Use EXACT original amount from QR if user didn't change it
+      paymentAmountINR = parseFloat(upiParams.am).toFixed(2);
+    } else {
+      paymentAmountINR = currencyService.convert(
+        parseFloat(finalAmount),
+        currency,
+        Currency.INR,
+        exchangeRates
+      ).toFixed(2);
+    }
+
+    console.log('[TransactionForm] Paying UPI:', {
+      cleanUpiId,
+      finalAmount,
+      paymentAmountINR,
+      originalAm: upiParams.am,
+      isAmountModified
+    });
 
     const upiUrl = generateUPIUrl(upiParams, {
       pa: cleanUpiId,
