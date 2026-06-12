@@ -144,18 +144,25 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     params.set('am', formattedAmount);
     params.set('cu', 'INR');
 
-    if (!params.has('tr')) {
-      params.set('tr', 'TR' + Date.now() + Math.floor(Math.random() * 1000));
-    }
-
-    if (name && !params.has('pn')) {
-      params.set('pn', name);
+    if (name) {
+      params.set('tn', name);
     }
 
     const upiUrl = `upi://pay?${params.toString()}`;
 
     setIsWaitingForPayment(true);
-    window.location.href = upiUrl;
+
+    const link = document.createElement('a');
+    link.href = upiUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 100);
   };
 
   return (
