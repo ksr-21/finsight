@@ -3,7 +3,7 @@ import { Bill, Category, Currency, CURRENCY_SYMBOLS, PaymentMode } from '../type
 import { SparklesIcon } from './icons';
 import QRScanner from './QRScanner';
 import { motion, AnimatePresence } from 'motion/react';
-import { formatAmount } from '../services/utils';
+import { generateUPIUrl } from '../services/upi';
 
 interface BillFormProps {
   onSubmit: (bill: Omit<Bill, 'id'>) => void;
@@ -136,38 +136,14 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
       return;
     }
 
-    const amountInINR = parseFloat(amount);
-    const formattedAmount = formatAmount(amountInINR);
-
-    const params = new URLSearchParams();
-    // Check if amount has been modified from scanned amount
     const isAmountModified = scannedAmount !== null && parseFloat(amount) !== parseFloat(scannedAmount);
 
-    Object.entries(upiParams).forEach(([key, value]) => {
-      // If amount was modified, we MUST strip tr (Transaction Reference) and tid (Transaction ID)
-      // as they are tied to the original amount/transaction signature.
-      if (isAmountModified && (key === 'tr' || key === 'tid' || key === 'am')) return;
-
-      // If amount was NOT modified, we should keep tr/tid as they might be required by merchants
-      // but we still override 'am' below for consistency.
-      if (key === 'am') return;
-
-      params.set(key, String(value));
+    const upiUrl = generateUPIUrl(upiParams, {
+      pa: upiId,
+      am: amount,
+      description: name,
+      isAmountModified
     });
-
-    params.set('pa', upiId);
-    params.set('am', formattedAmount);
-    params.set('cu', 'INR');
-
-    if (!params.has('pn')) {
-      params.set('pn', name || 'FinSight Bill Payment');
-    }
-
-    if (name) {
-      params.set('tn', name);
-    }
-
-    const upiUrl = `upi://pay?${params.toString()}`;
 
     setIsWaitingForPayment(true);
 
