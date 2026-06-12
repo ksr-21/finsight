@@ -33,14 +33,15 @@ class CurrencyService {
   convert(amount: number, from: Currency, to: Currency, rates: Record<string, number>): number {
     if (from === to) return amount;
 
-    // The rates are relative to the base currency that was used to fetch them.
+    // The rates are relative to USD.
     // If we have rates for USD, then rates['INR'] is how many INR per 1 USD.
     // amountInBase = amount / rates[from]
     // amountInTarget = amountInBase * rates[to]
+    const fromRate = from === Currency.USD ? 1 : rates[from];
+    const toRate = to === Currency.USD ? 1 : rates[to];
 
-    // Assuming the rates object passed in is based on 'from'
-    if (rates[to]) {
-        return amount * rates[to];
+    if (fromRate && toRate && fromRate > 0) {
+      return (amount / fromRate) * toRate;
     }
 
     return amount; // Fallback

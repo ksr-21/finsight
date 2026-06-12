@@ -4,14 +4,16 @@ import { SparklesIcon } from './icons';
 import QRScanner from './QRScanner';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateUPIUrl } from '../services/upi';
+import { currencyService } from '../services/currencyService';
 
 interface BillFormProps {
   onSubmit: (bill: Omit<Bill, 'id'>) => void;
   currency: Currency;
   initialData?: Bill | null;
+  exchangeRates?: Record<string, number>;
 }
 
-const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) => {
+const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData, exchangeRates = {} }) => {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
@@ -68,6 +70,18 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
         pa = params.get('pa') || '';
         pn = params.get('pn') || '';
         am = params.get('am') || '';
+        const cu = params.get('cu') || 'INR';
+
+        // Convert scanned amount (usually INR) to app currency
+        if (am && cu && exchangeRates) {
+          const convertedAmount = currencyService.convert(
+            parseFloat(am),
+            cu as Currency,
+            currency,
+            exchangeRates
+          );
+          am = convertedAmount.toFixed(2);
+        }
       } else if (decodedText.includes('@')) {
         pa = decodedText.trim();
       }
@@ -139,11 +153,19 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     const cleanUpiId = upiId.trim();
     const isAmountModified = scannedAmount !== null && parseFloat(amount) !== parseFloat(scannedAmount);
 
-    console.log('[BillForm] Paying UPI:', { cleanUpiId, amount, name });
+    // Convert app amount back to INR for UPI payment
+    const paymentAmountINR = currencyService.convert(
+      parseFloat(amount),
+      currency,
+      Currency.INR,
+      exchangeRates
+    ).toFixed(2);
+
+    console.log('[BillForm] Paying UPI:', { cleanUpiId, amount, paymentAmountINR, name });
 
     const upiUrl = generateUPIUrl(upiParams, {
       pa: cleanUpiId,
-      am: amount,
+      am: paymentAmountINR,
       description: name.trim(),
       isAmountModified
     });

@@ -350,6 +350,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
                 userId={user.uid}
                 initialData={editingTransaction}
                 initialShowScanner={initialFormState?.showScanner}
+                exchangeRates={exchangeRates}
               />
             </motion.div>
           </div>
