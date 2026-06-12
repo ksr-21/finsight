@@ -10,6 +10,7 @@ import PortfolioForm from '../components/PortfolioForm';
 import TransactionForm from '../components/TransactionForm';
 import DebtForm from '../components/DebtForm';
 import { Bill, PortfolioAsset } from '../types';
+import { formatAmount } from '../services/utils';
 
 interface BudgetsGoalsPageProps {
   currency: Currency;
@@ -478,7 +479,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className={`text-sm font-bold font-mono ${isOver ? 'text-rose-500' : 'text-emerald-500'}`}>
-                            {currencySymbol}{spent.toLocaleString()} / {currencySymbol}{b.amount.toLocaleString()}
+                            {currencySymbol}{formatAmount(spent)} / {currencySymbol}{formatAmount(b.amount)}
                           </p>
                           <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">
                             {percent.toFixed(0)}% Used
@@ -596,8 +597,8 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
                     <div className="space-y-4">
                       <div className="flex justify-between text-xs font-mono text-text-secondary dark:text-gray-400 uppercase tracking-widest">
-                        <span>{currencySymbol}{g.currentAmount.toLocaleString()} saved</span>
-                        <span>{currencySymbol}{g.targetAmount.toLocaleString()} goal</span>
+                        <span>{currencySymbol}{formatAmount(g.currentAmount)} saved</span>
+                        <span>{currencySymbol}{formatAmount(g.targetAmount)} goal</span>
                       </div>
                       <div className="h-3 w-full bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
                         <motion.div 
@@ -677,7 +678,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                     <div className="flex items-end justify-between">
                       <div>
                         <p className="text-2xl font-bold font-mono text-text-primary dark:text-white">
-                          {currencySymbol}{bill.amount.toLocaleString()}
+                          {currencySymbol}{formatAmount(bill.amount)}
                         </p>
                         <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">
                           Due {new Date(bill.dueDate).toLocaleDateString()}
@@ -755,11 +756,11 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                                     <div className="flex justify-between items-end">
                                         <div>
                                             <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest mb-1">Remaining</p>
-                                            <p className="text-2xl font-bold font-mono text-text-primary dark:text-white">{currencySymbol}{debt.remainingAmount.toLocaleString()}</p>
+                                            <p className="text-2xl font-bold font-mono text-text-primary dark:text-white">{currencySymbol}{formatAmount(debt.remainingAmount)}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-bold font-mono text-text-secondary dark:text-gray-400">
-                                                / {currencySymbol}{debt.amount.toLocaleString()}
+                                                / {currencySymbol}{formatAmount(debt.amount)}
                                             </p>
                                         </div>
                                     </div>
@@ -871,7 +872,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                       <div className="flex justify-between items-end">
                         <div>
                           <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest mb-1">Current Value</p>
-                          <p className="text-2xl font-bold font-mono text-text-primary dark:text-white">{currencySymbol}{value.toLocaleString()}</p>
+                          <p className="text-2xl font-bold font-mono text-text-primary dark:text-white">{currencySymbol}{formatAmount(value)}</p>
                         </div>
                         <div className="text-right">
                           <p className={`text-sm font-bold font-mono ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
@@ -888,7 +889,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                          </div>
                          <div className="text-right">
                             <p className="text-[9px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">Avg Price</p>
-                            <p className="text-xs font-bold text-text-primary dark:text-white">{currencySymbol}{asset.averagePrice.toLocaleString()}</p>
+                            <p className="text-xs font-bold text-text-primary dark:text-white">{currencySymbol}{formatAmount(asset.averagePrice)}</p>
                          </div>
                       </div>
                     </div>
@@ -1187,7 +1188,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                     placeholder="0.00"
                     className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 text-text-primary dark:text-white font-bold"
                   />
-                  <p className="text-[10px] text-text-secondary mt-1 ml-1">Remaining: {currencySymbol}{repayingDebt?.remainingAmount.toLocaleString()}</p>
+                  <p className="text-[10px] text-text-secondary mt-1 ml-1">Remaining: {currencySymbol}{repayingDebt ? formatAmount(repayingDebt.remainingAmount) : '0'}</p>
                 </div>
                 <button
                   type="submit"
@@ -1233,7 +1234,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                   selectedDebtForHistory.repayments.map((r, idx) => (
                     <div key={r.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700">
                       <div>
-                        <p className="text-sm font-bold text-text-primary dark:text-white">{currencySymbol}{r.amount.toLocaleString()}</p>
+                        <p className="text-sm font-bold text-text-primary dark:text-white">{currencySymbol}{formatAmount(r.amount)}</p>
                         <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">{new Date(r.date).toLocaleDateString()}</p>
                       </div>
                       <div className="px-2 py-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">

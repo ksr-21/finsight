@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { Transaction, Currency, CURRENCY_SYMBOLS } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatAmount } from '../services/utils';
 
 interface ExpenseTrendChartProps {
   transactions: Transaction[];
@@ -50,7 +51,7 @@ const ExpenseTrendChart: React.FC<ExpenseTrendChartProps> = ({ transactions, cur
                         borderRadius: '0.5rem',
                         color: '#F9FAFB'
                     }} 
-                    formatter={(value: number) => `${currencySymbol}${value.toFixed(2)}`} />
+                    formatter={(value: number) => `${currencySymbol}${formatAmount(value)}`} />
                 <Bar dataKey="amount" fill="#4F46E5" name="Expenses" />
             </BarChart>
         </ResponsiveContainer>

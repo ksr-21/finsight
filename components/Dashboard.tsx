@@ -13,6 +13,7 @@ import AiSummary from './AiSummary';
 import { ArrowUpIcon, ArrowDownIcon, ScaleIcon, WalletIcon, SparklesIcon, PlusIcon, CloseIcon } from './icons';
 import { api } from '../services/api';
 import TransactionForm from './TransactionForm';
+import { formatAmount } from '../services/utils';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -447,7 +448,7 @@ interface StatCardProps {
 const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, color, delay }) => {
     const isNegative = amount < 0;
     const currencySymbol = CURRENCY_SYMBOLS[currency];
-    const formattedAmount = currencySymbol + Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const formattedAmount = currencySymbol + formatAmount(amount);
 
     const colorClasses = {
       emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
@@ -472,7 +473,6 @@ const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, colo
                 <p className={`text-4xl font-bold text-text-primary dark:text-white tracking-tighter ${isNegative && color === 'indigo' ? 'text-rose-500' : ''}`}>
                   {isNegative && '-'}{formattedAmount}
                 </p>
-                <span className="text-xs font-mono text-text-secondary dark:text-gray-500">.00</span>
               </div>
             </div>
             

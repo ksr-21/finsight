@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Transaction, Currency, CURRENCY_SYMBOLS, TransactionType } from '../types';
 import { ArrowUpIcon, ArrowDownIcon, WalletIcon } from './icons';
+import { formatAmount } from '../services/utils';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -53,7 +54,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, c
                       ? 'text-indigo-500 dark:text-indigo-400'
                       : 'text-rose-500'
                 }`}>
-                  {t.type === TransactionType.INCOME ? '+' : '-'}{currencySymbol}{t.amount.toLocaleString()}
+                  {t.type === TransactionType.INCOME ? '+' : '-'}{currencySymbol}{formatAmount(t.amount)}
                 </p>
                 <p className="text-[9px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">
                   {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

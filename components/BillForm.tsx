@@ -3,6 +3,7 @@ import { Bill, Category, Currency, CURRENCY_SYMBOLS, PaymentMode } from '../type
 import { SparklesIcon } from './icons';
 import QRScanner from './QRScanner';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatAmount } from '../services/utils';
 
 interface BillFormProps {
   onSubmit: (bill: Omit<Bill, 'id'>) => void;
@@ -20,6 +21,7 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
   const [showScanner, setShowScanner] = useState(false);
   const [upiId, setUpiId] = useState('');
   const [upiParams, setUpiParams] = useState<Record<string, string>>({});
+  const [scannedAmount, setScannedAmount] = useState<string | null>(null);
   const [showAmountPrompt, setShowAmountPrompt] = useState(false);
   const [tempAmount, setTempAmount] = useState('');
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
@@ -76,7 +78,9 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
         if (pn) setName(pn);
         if (am) {
           setAmount(am);
+          setScannedAmount(am);
         } else {
+          setScannedAmount(null);
           setShowAmountPrompt(true);
         }
 
@@ -133,16 +137,31 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     }
 
     const amountInINR = parseFloat(amount);
-    const formattedAmount = amountInINR.toFixed(2);
+    const formattedAmount = formatAmount(amountInINR);
 
     const params = new URLSearchParams();
+    // Check if amount has been modified from scanned amount
+    const isAmountModified = scannedAmount !== null && parseFloat(amount) !== parseFloat(scannedAmount);
+
     Object.entries(upiParams).forEach(([key, value]) => {
+      // If amount was modified, we MUST strip tr (Transaction Reference) and tid (Transaction ID)
+      // as they are tied to the original amount/transaction signature.
+      if (isAmountModified && (key === 'tr' || key === 'tid' || key === 'am')) return;
+
+      // If amount was NOT modified, we should keep tr/tid as they might be required by merchants
+      // but we still override 'am' below for consistency.
+      if (key === 'am') return;
+
       params.set(key, String(value));
     });
 
     params.set('pa', upiId);
     params.set('am', formattedAmount);
     params.set('cu', 'INR');
+
+    if (!params.has('pn')) {
+      params.set('pn', name || 'FinSight Bill Payment');
+    }
 
     if (name) {
       params.set('tn', name);

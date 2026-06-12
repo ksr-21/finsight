@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Transaction, Budget, Currency, CURRENCY_SYMBOLS, Category, TransactionType } from '../types';
+import { formatAmount } from '../services/utils';
 
 interface BudgetProgressProps {
   transactions: Transaction[];
@@ -48,7 +49,7 @@ const BudgetProgress: React.FC<BudgetProgressProps> = ({ transactions, budgets, 
                       {isOver && <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />}
                     </div>
                     <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest mt-0.5">
-                      {currencySymbol}{spent.toLocaleString()} / {currencySymbol}{budget.amount.toLocaleString()}
+                      {currencySymbol}{formatAmount(spent)} / {currencySymbol}{formatAmount(budget.amount)}
                     </p>
                   </div>
                   <div className={`text-xs font-mono font-bold ${isOver ? 'text-rose-500' : 'text-indigo-500'}`}>

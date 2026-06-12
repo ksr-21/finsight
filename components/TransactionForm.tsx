@@ -16,6 +16,7 @@ import {
 } from './icons';
 import QRScanner from './QRScanner';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatAmount } from '../services/utils';
 
 interface TransactionFormProps {
   onSubmit: (transaction: Omit<Transaction, 'id'>) => void;
@@ -56,6 +57,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [showScanner, setShowScanner] = useState(initialShowScanner || false);
   const [upiId, setUpiId] = useState('');
   const [upiParams, setUpiParams] = useState<Record<string, string>>({});
+  const [scannedAmount, setScannedAmount] = useState<string | null>(null);
   const [showAmountPrompt, setShowAmountPrompt] = useState(false);
   const [tempAmount, setTempAmount] = useState('');
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
@@ -192,7 +194,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         if (pn) setDescription(pn);
         if (am) {
           setAmount(am);
+          setScannedAmount(am);
         } else {
+          setScannedAmount(null);
           setShowAmountPrompt(true);
         }
 
@@ -257,13 +261,25 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     }
 
     const amountInINR = parseFloat(finalAmount);
-    const formattedAmount = amountInINR.toFixed(2);
+    // Simple format for amount: no .00 if whole number, as some banks fail with .00
+    const formattedAmount = formatAmount(amountInINR);
 
     // Build UPI URL with all captured params
     const params = new URLSearchParams();
 
+    // Check if amount has been modified from scanned amount
+    const isAmountModified = scannedAmount !== null && parseFloat(finalAmount) !== parseFloat(scannedAmount);
+
     // Add all original scanned params
     Object.entries(upiParams).forEach(([key, value]) => {
+      // If amount was modified, we MUST strip tr (Transaction Reference) and tid (Transaction ID)
+      // as they are tied to the original amount/transaction signature.
+      if (isAmountModified && (key === 'tr' || key === 'tid' || key === 'am')) return;
+
+      // If amount was NOT modified, we should keep tr/tid as they might be required by merchants
+      // but we still override 'am' below for consistency.
+      if (key === 'am') return;
+
       params.set(key, String(value));
     });
 
@@ -271,6 +287,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     params.set('pa', upiId);
     params.set('am', formattedAmount);
     params.set('cu', 'INR');
+
+    // Payee Name is often mandatory for GPay to work correctly with merchant QR codes
+    if (!params.has('pn')) {
+      params.set('pn', description || category || 'FinSight Payment');
+    }
 
     if (description) {
       params.set('tn', description);
@@ -591,7 +612,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   <div className="text-right">
                     <label className="text-[10px] font-mono uppercase text-gray-500 mb-1 block">Each pays</label>
                     <p className="text-sm font-bold text-indigo-600">
-                      {CURRENCY_SYMBOLS[currency]}{(parseFloat(amount || '0') / (splitCount || 1)).toFixed(2)}
+                      {CURRENCY_SYMBOLS[currency]}{formatAmount(parseFloat(amount || '0') / (splitCount || 1))}
                     </p>
                   </div>
                 </div>

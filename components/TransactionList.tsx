@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Transaction, Category, TransactionType, Currency, CURRENCY_SYMBOLS } from '../types';
 import { PencilIcon, TrashIcon, ArrowDownTrayIcon, ChevronDownIcon, SparklesIcon } from './icons';
+import { formatAmount } from '../services/utils';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -267,7 +268,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                 </td>
                 <td className="py-3 px-4 text-text-secondary dark:text-gray-300">{new Date(t.date).toLocaleDateString()}</td>
                 <td className={`py-3 px-4 font-semibold text-right ${t.type === 'Income' ? 'text-green-500' : 'text-red-500'}`}>
-                  {t.type === 'Income' ? '+' : '-'}{currencySymbol}{t.amount.toFixed(2)}
+                  {t.type === 'Income' ? '+' : '-'}{currencySymbol}{formatAmount(t.amount)}
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center justify-center gap-2">

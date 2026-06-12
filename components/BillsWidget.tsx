@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Bill, Currency, CURRENCY_SYMBOLS } from '../types';
 import { CalendarIcon, CheckCircleIcon, AlertCircleIcon, SparklesIcon } from './icons';
+import { formatAmount } from '../services/utils';
 
 interface BillsWidgetProps {
   bills: Bill[];
@@ -49,7 +50,7 @@ const BillsWidget: React.FC<BillsWidgetProps> = ({ bills, currency, onSplitBill 
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm font-bold font-mono text-text-primary dark:text-white">
-                      {currencySymbol}{bill.amount.toLocaleString()}
+                      {currencySymbol}{formatAmount(bill.amount)}
                     </p>
                     <p className={`text-[9px] font-mono uppercase tracking-widest font-bold ${bill.isPaid ? 'text-emerald-500' : isOverdue ? 'text-rose-500' : 'text-amber-500'}`}>
                       {bill.isPaid ? 'Paid' : isOverdue ? 'Overdue' : 'Pending'}
