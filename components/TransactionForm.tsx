@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Currency, CURRENCY_SYMBOLS, Transaction, TransactionType, PaymentMode } from '../types';
 import {
   CategoryPreferences,
@@ -11,14 +11,9 @@ import {
   ChevronDownIcon,
   PlusIcon,
   TrashIcon,
-  SparklesIcon,
-  CheckCircleIcon,
 } from './icons';
-import QRScanner from './QRScanner';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatAmount } from '../services/utils';
-import { generateUPIUrl } from '../services/upi';
-import { currencyService } from '../services/currencyService';
 
 interface TransactionFormProps {
   onSubmit: (transaction: Omit<Transaction, 'id'>) => void;
@@ -40,7 +35,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   currency,
   userId,
   initialData,
-  initialShowScanner,
   exchangeRates = {},
 }) => {
   const [amount, setAmount] = useState('');
@@ -58,13 +52,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [splitCount, setSplitCount] = useState(2);
   const [splitWith, setSplitWith] = useState<string[]>(['']);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
-  const [showScanner, setShowScanner] = useState(initialShowScanner || false);
   const [upiId, setUpiId] = useState('');
-  const [upiParams, setUpiParams] = useState<Record<string, string>>({});
-  const [scannedAmount, setScannedAmount] = useState<string | null>(null);
-  const [showAmountPrompt, setShowAmountPrompt] = useState(false);
-  const [tempAmount, setTempAmount] = useState('');
-  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
 
   const categories = categoryPreferences[type];
 
@@ -167,254 +155,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     });
   };
 
-  const handleScanSuccess = useCallback((decodedText: string) => {
-    // Standard UPI URL: upi://pay?pa=upiid@bank&pn=Name&am=100&cu=INR
-    // Some codes might just be the UPI ID or a different format.
-    try {
-      let pa = '';
-      let pn = '';
-      let am = '';
-      const newUpiParams: Record<string, string> = {};
-
-      if (decodedText.startsWith('upi://pay')) {
-        const url = new URL(decodedText);
-        const params = new URLSearchParams(url.search);
-
-        params.forEach((value, key) => {
-          newUpiParams[key] = value;
-        });
-
-        pa = params.get('pa') || '';
-        pn = params.get('pn') || '';
-        am = params.get('am') || '';
-        const cu = params.get('cu') || 'INR';
-
-        // Convert scanned amount (usually INR) to app currency
-        if (am && cu && exchangeRates) {
-          const convertedAmount = currencyService.convert(
-            parseFloat(am),
-            cu as Currency,
-            currency,
-            exchangeRates
-          );
-          am = convertedAmount.toFixed(2);
-        }
-      } else if (decodedText.includes('@')) {
-        // Simple UPI ID scan
-        pa = decodedText.trim();
-      }
-
-      if (pa) {
-        setUpiId(pa);
-        setUpiParams(newUpiParams);
-        if (pn) setDescription(pn);
-        if (am) {
-          setAmount(am);
-          setScannedAmount(am);
-        } else {
-          setScannedAmount(null);
-          setShowAmountPrompt(true);
-        }
-
-        setPaymentMode('Online');
-        setShowScanner(false);
-      }
-    } catch (e) {
-      console.error("Invalid QR code", e);
-    }
-  }, []);
-
-  const [isUPISuccess, setIsUPISuccess] = useState(false);
-
-  const handleReturnFromPayment = useCallback(() => {
-    if (!isWaitingForPayment) return;
-    setIsWaitingForPayment(false);
-
-    // Small delay to ensure browser is fully responsive
-    setTimeout(() => {
-      if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid and save.")) {
-        setIsUPISuccess(true);
-        const parsedAmount = Number(amount);
-        if (category && Number.isFinite(parsedAmount) && parsedAmount > 0) {
-          onSubmit({
-            description: description.trim() || category,
-            amount: parsedAmount,
-            type,
-            category,
-            date,
-            isSplit,
-            splitCount,
-            splitWith: isSplit ? splitWith.filter(s => s.trim() !== '') : [],
-            paymentMode,
-            upiId: upiId.trim(),
-          });
-        }
-      }
-    }, 500);
-  }, [isWaitingForPayment, amount, category, description, type, date, isSplit, splitCount, splitWith, paymentMode, upiId, onSubmit]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isWaitingForPayment) {
-        handleReturnFromPayment();
-      }
-    };
-
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
-    };
-  }, [isWaitingForPayment, handleReturnFromPayment]);
-
-  const handlePayUPI = () => {
-    const finalAmount = amount;
-    if (!finalAmount || !upiId) {
-      alert("Please ensure amount and UPI ID are set.");
-      return;
-    }
-
-    const cleanUpiId = upiId.trim();
-
-    // CRITICAL: Determine if amount was modified BEFORE any currency conversion
-    // to avoid precision loss issues.
-    const isAmountModified = scannedAmount !== null &&
-      Math.abs(parseFloat(finalAmount) - parseFloat(scannedAmount)) > 0.001;
-
-    // Convert app amount back to INR for UPI payment
-    // If it was NOT modified, we should ideally use the original scanned INR amount
-    // to avoid rounding errors that trigger security warnings.
-    let paymentAmountINR: string;
-
-    if (!isAmountModified && upiParams.am) {
-      // Use EXACT original amount from QR if user didn't change it
-      paymentAmountINR = parseFloat(upiParams.am).toFixed(2);
-    } else {
-      paymentAmountINR = currencyService.convert(
-        parseFloat(finalAmount),
-        currency,
-        Currency.INR,
-        exchangeRates
-      ).toFixed(2);
-    }
-
-    console.log('[TransactionForm] Paying UPI:', {
-      cleanUpiId,
-      finalAmount,
-      paymentAmountINR,
-      originalAm: upiParams.am,
-      isAmountModified
-    });
-
-    const upiUrl = generateUPIUrl(upiParams, {
-      pa: cleanUpiId,
-      am: paymentAmountINR,
-      description: (description || category).trim(),
-      isAmountModified
-    });
-
-    // Mark that we are waiting for payment before leaving
-    setIsWaitingForPayment(true);
-
-    // Use a hidden anchor element for more reliable redirection on mobile browsers
-    const link = document.createElement('a');
-    link.href = upiUrl;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-
-    // Clean up
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-    }, 100);
-
-    // Fallback for some browsers where visibilitychange might not trigger as expected
-    // or if the user doesn't actually leave the app (e.g. UPI app fails to open)
-    setTimeout(() => {
-      if (isWaitingForPayment) {
-        // If we're still here after 2 seconds, maybe the app didn't open or they came back quickly
-        // We'll let handleVisibilityChange handle it, but this is a safety.
-      }
-    }, 2000);
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {showScanner && (
-        <QRScanner
-          onScanSuccess={handleScanSuccess}
-          onClose={() => setShowScanner(false)}
-        />
-      )}
-
-      {/* Amount Prompt Modal */}
-      <AnimatePresence>
-        {showAmountPrompt && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-[2rem] p-8 shadow-2xl border border-gray-100 dark:border-gray-700"
-            >
-              <h3 className="text-xl font-bold text-text-primary dark:text-white mb-4 text-center">Enter Amount</h3>
-              <div className="relative mb-6">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-indigo-600">
-                  {CURRENCY_SYMBOLS[currency]}
-                </span>
-                <input
-                  autoFocus
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={tempAmount}
-                  onChange={(e) => setTempAmount(e.target.value)}
-                  className="w-full pl-10 pr-4 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl text-xl font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAmountPrompt(false)}
-                  className="flex-1 py-3 px-4 rounded-xl font-bold text-text-secondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (tempAmount && !isNaN(parseFloat(tempAmount))) {
-                      setAmount(tempAmount);
-                      setShowAmountPrompt(false);
-                      setTempAmount('');
-                    }
-                  }}
-                  className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
-                >
-                  Confirm
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {paymentMode === 'Online' && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setShowScanner(true)}
-            className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 py-3 rounded-xl font-bold text-sm border border-indigo-100 dark:border-indigo-500/20"
-          >
-            <SparklesIcon className="w-4 h-4" />
-            Scan QR to Pay
-          </button>
-        </div>
-      )}
       <div className="grid grid-cols-2 gap-1.5 sm:gap-2 rounded-2xl bg-gray-100 dark:bg-gray-900/60 p-1">
         {[TransactionType.EXPENSE, TransactionType.INCOME].map((transactionType) => {
           const isSelected = type === transactionType;
@@ -699,9 +441,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       onChange={(e) => setUpiId(e.target.value)}
                       className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"
                     />
-                    {isUPISuccess && (
-                      <CheckCircleIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
-                    )}
                   </div>
                 </div>
               </div>
@@ -722,17 +461,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           </div>
         )}
       </div>
-
-      {paymentMode === 'Online' && upiId && amount && !isUPISuccess && (
-        <button
-          type="button"
-          onClick={handlePayUPI}
-          className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2"
-        >
-          <SparklesIcon className="w-5 h-5" />
-          Pay Now
-        </button>
-      )}
 
       <button
         type="submit"

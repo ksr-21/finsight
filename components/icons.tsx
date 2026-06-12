@@ -240,9 +240,3 @@ export const InfoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   </svg>
 );
 
-export const QrCodeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.008v.008H6.75V6.75Zm0 9.75h.008v.008H6.75v-.008Zm9.75-9.75h.008v.008h-.008V6.75ZM13.5 13.5h.75v.75h-.75v-.75Zm.75 0h.75v.75h-.75v-.75Zm.75 0h.75v.75h-.75v-.75Zm-.75.75h.75v.75h-.75v-.75Zm.75 0h.75v.75h-.75v-.75Zm-.75.75h.75v.75h-.75v-.75Zm.75 0h.75v.75h-.75v-.75ZM13.5 15h.75v.75h-.75V15Zm.75 0h.75v.75h-.75V15Zm.75 0h.75v.75h-.75V15Zm.75 0h.75v.75h-.75V15Zm-.75.75h.75v.75h-.75v-.75Zm.75 0h.75v.75h-.75v-.75Zm-.75.75h.75v.75h-.75v-.75Zm.75 0h.75v.75h-.75v-.75Z" />
-  </svg>
-);

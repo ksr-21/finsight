@@ -31,7 +31,6 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [initialFormState, setInitialFormState] = useState<{ showScanner: boolean } | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currency, setCurrency] = useState<Currency>(Currency.USD);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
@@ -136,15 +135,13 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
     await loadUserData();
   };
 
-  const openAddModal = (options?: { showScanner: boolean }) => {
+  const openAddModal = () => {
     setEditingTransaction(null);
-    setInitialFormState(options || null);
     setIsFormModalOpen(true);
   };
 
   const openEditModal = (transaction: Transaction) => {
     setEditingTransaction(transaction);
-    setInitialFormState(null);
     setIsFormModalOpen(true);
   };
 
@@ -221,7 +218,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
       <AiChatbot transactions={transactions} currency={currency} balance={balance} />
 
-      <MobileNav onOpenQRScanner={() => openAddModal({ showScanner: true })} />
+      <MobileNav />
 
       {/* Profile Modal */}
       <AnimatePresence>
@@ -349,7 +346,6 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
                 currency={currency}
                 userId={user.uid}
                 initialData={editingTransaction}
-                initialShowScanner={initialFormState?.showScanner}
                 exchangeRates={exchangeRates}
               />
             </motion.div>

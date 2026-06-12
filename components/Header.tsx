@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, BellIcon, WalletIcon, ScaleIcon, SparklesIcon } from './icons';
+import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, BellIcon, WalletIcon } from './icons';
 import { Currency, User, Transaction, TransactionType, CURRENCY_SYMBOLS } from '../types';
 import { useMemo } from 'react';
 
@@ -152,14 +152,6 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
               <PlusIcon className="w-3.5 h-3.5" />
               <span>Add</span>
             </button>
-
-            <NavLink
-              to="/insights"
-              className="lg:hidden p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 active:scale-95"
-              aria-label="Insights"
-            >
-              <SparklesIcon className="h-4 w-4" />
-            </NavLink>
 
             <button
               onClick={onAddTransaction}
