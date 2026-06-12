@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Transaction, Currency, User, CURRENCY_SYMBOLS } from './types';
 import Header from './components/Header';

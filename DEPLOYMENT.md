@@ -20,7 +20,14 @@ Add the following variables in the Vercel Dashboard (Settings > Environment Vari
 - `JWT_SECRET`: A long, random string for secure token generation.
 - `VITE_OPENROUTER_API_KEY`: (Optional) Your OpenRouter API key for AI features.
 
-## 4. Deployment
+## 4. Firebase Configuration
+1. Go to the [Firebase Console](https://console.firebase.google.com/).
+2. Select your project (`success-squad-eureka`).
+3. Navigate to **Authentication** > **Settings** > **Authorized domains**.
+4. Click **Add domain** and enter your production domain (e.g., `finsight-weld-psi.vercel.app`).
+5. This is required to prevent console errors and enable OAuth features.
+
+## 5. Deployment
 1. Push your changes to GitHub and connect your repository to Vercel for automatic deployments.
 2. Alternatively, run `vercel --prod` to deploy manually.
 
