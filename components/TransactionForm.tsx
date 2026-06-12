@@ -17,6 +17,7 @@ import {
 import QRScanner from './QRScanner';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatAmount } from '../services/utils';
+import { generateUPIUrl } from '../services/upi';
 
 interface TransactionFormProps {
   onSubmit: (transaction: Omit<Transaction, 'id'>) => void;
@@ -260,44 +261,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       return;
     }
 
-    const amountInINR = parseFloat(finalAmount);
-    // Simple format for amount: no .00 if whole number, as some banks fail with .00
-    const formattedAmount = formatAmount(amountInINR);
-
-    // Build UPI URL with all captured params
-    const params = new URLSearchParams();
-
-    // Check if amount has been modified from scanned amount
     const isAmountModified = scannedAmount !== null && parseFloat(finalAmount) !== parseFloat(scannedAmount);
 
-    // Add all original scanned params
-    Object.entries(upiParams).forEach(([key, value]) => {
-      // If amount was modified, we MUST strip tr (Transaction Reference) and tid (Transaction ID)
-      // as they are tied to the original amount/transaction signature.
-      if (isAmountModified && (key === 'tr' || key === 'tid' || key === 'am')) return;
-
-      // If amount was NOT modified, we should keep tr/tid as they might be required by merchants
-      // but we still override 'am' below for consistency.
-      if (key === 'am') return;
-
-      params.set(key, String(value));
+    const upiUrl = generateUPIUrl(upiParams, {
+      pa: upiId,
+      am: finalAmount,
+      description: description || category,
+      isAmountModified
     });
-
-    // Override/Set required params
-    params.set('pa', upiId);
-    params.set('am', formattedAmount);
-    params.set('cu', 'INR');
-
-    // Payee Name is often mandatory for GPay to work correctly with merchant QR codes
-    if (!params.has('pn')) {
-      params.set('pn', description || category || 'FinSight Payment');
-    }
-
-    if (description) {
-      params.set('tn', description);
-    }
-
-    const upiUrl = `upi://pay?${params.toString()}`;
 
     // Mark that we are waiting for payment before leaving
     setIsWaitingForPayment(true);
