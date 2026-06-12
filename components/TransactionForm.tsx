@@ -55,8 +55,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
   const [showScanner, setShowScanner] = useState(initialShowScanner || false);
   const [upiId, setUpiId] = useState('');
+  const [upiParams, setUpiParams] = useState<Record<string, string>>({});
   const [showAmountPrompt, setShowAmountPrompt] = useState(false);
   const [tempAmount, setTempAmount] = useState('');
+  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
 
   const categories = categoryPreferences[type];
 
@@ -166,10 +168,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       let pa = '';
       let pn = '';
       let am = '';
+      const newUpiParams: Record<string, string> = {};
 
       if (decodedText.startsWith('upi://pay')) {
         const url = new URL(decodedText);
         const params = new URLSearchParams(url.search);
+
+        params.forEach((value, key) => {
+          newUpiParams[key] = value;
+        });
+
         pa = params.get('pa') || '';
         pn = params.get('pn') || '';
         am = params.get('am') || '';
@@ -180,6 +188,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
       if (pa) {
         setUpiId(pa);
+        setUpiParams(newUpiParams);
         if (pn) setDescription(pn);
         if (am) {
           setAmount(am);
@@ -189,48 +198,23 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
         setPaymentMode('Online');
         setShowScanner(false);
-
-        // If we have both UPI ID and amount, offer to pay immediately
-        if (pa && (am || amount)) {
-          // We can't automatically redirect as it might be jarring,
-          // but we'll show the Pay Now button clearly.
-        }
       }
     } catch (e) {
       console.error("Invalid QR code", e);
     }
-  }, [amount]);
+  }, []);
 
   const [isUPISuccess, setIsUPISuccess] = useState(false);
 
-  const handlePayUPI = () => {
-    const finalAmount = amount;
-    if (!finalAmount || !upiId) {
-      alert("Please ensure amount and UPI ID are set.");
-      return;
-    }
+  const handleReturnFromPayment = useCallback(() => {
+    if (!isWaitingForPayment) return;
+    setIsWaitingForPayment(false);
 
-    // Fix GPay "amount is so more" by strictly formatting to 2 decimal places
-    // Also ensure we are sending the amount in INR for UPI
-    let amountInINR = parseFloat(finalAmount);
-
-    // If the app is currently in USD, we should ideally convert to INR for the UPI link
-    // However, without access to the latest rates here, we'll assume the user entered
-    // the amount they want to pay in the UPI app.
-    // Most Indian UPI apps expect 'am' in INR.
-
-    const formattedAmount = amountInINR.toFixed(2);
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(description || 'Payment')}&am=${formattedAmount}&cu=INR`;
-
-    // Attempt to open UPI app
-    window.location.href = upiUrl;
-
-    // Show confirmation dialog after a short delay to allow app switch
+    // Small delay to ensure browser is fully responsive
     setTimeout(() => {
       if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid and save.")) {
         setIsUPISuccess(true);
-        // Automatically submit the form
-        const parsedAmount = Number(finalAmount);
+        const parsedAmount = Number(amount);
         if (category && Number.isFinite(parsedAmount) && parsedAmount > 0) {
           onSubmit({
             description: description.trim() || category,
@@ -246,7 +230,73 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           });
         }
       }
-    }, 1000);
+    }, 500);
+  }, [isWaitingForPayment, amount, category, description, type, date, isSplit, splitCount, splitWith, paymentMode, upiId, onSubmit]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isWaitingForPayment) {
+        handleReturnFromPayment();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [isWaitingForPayment, handleReturnFromPayment]);
+
+  const handlePayUPI = () => {
+    const finalAmount = amount;
+    if (!finalAmount || !upiId) {
+      alert("Please ensure amount and UPI ID are set.");
+      return;
+    }
+
+    const amountInINR = parseFloat(finalAmount);
+    const formattedAmount = amountInINR.toFixed(2);
+
+    // Build UPI URL with all captured params
+    const params = new URLSearchParams();
+
+    // Add all original scanned params
+    Object.entries(upiParams).forEach(([key, value]) => {
+      params.set(key, String(value));
+    });
+
+    // Override/Set required params
+    params.set('pa', upiId);
+    params.set('am', formattedAmount);
+    params.set('cu', 'INR');
+
+    // Add transaction reference if missing (some banks require this for intent)
+    if (!params.has('tr')) {
+      params.set('tr', 'TR' + Date.now() + Math.floor(Math.random() * 1000));
+    }
+
+    if (description && !params.has('pn')) {
+      params.set('pn', description);
+    }
+
+    const upiUrl = `upi://pay?${params.toString()}`;
+
+    // Mark that we are waiting for payment before leaving
+    setIsWaitingForPayment(true);
+
+    // Attempt to open UPI app
+    window.location.href = upiUrl;
+
+    // Fallback for some browsers where visibilitychange might not trigger as expected
+    // or if the user doesn't actually leave the app (e.g. UPI app fails to open)
+    setTimeout(() => {
+      if (isWaitingForPayment) {
+        // If we're still here after 2 seconds, maybe the app didn't open or they came back quickly
+        // We'll let handleVisibilityChange handle it, but this is a safety.
+      }
+    }, 2000);
   };
 
   return (
