@@ -12,38 +12,60 @@ const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onScanError, onClo
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const scanner = new Html5Qrcode("qr-reader");
     scannerRef.current = scanner;
 
     const startScanner = async () => {
       try {
+        // Wait a bit to ensure the DOM element is ready and previous instances are cleared
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        if (!isMounted) return;
+
         await scanner.start(
           { facingMode: "environment" },
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },
           },
-          onScanSuccess,
+          (decodedText) => {
+            if (isMounted) {
+              onScanSuccess(decodedText);
+            }
+          },
           (error) => {
             // Only report specific errors if needed, otherwise ignore noise
-            if (onScanError && typeof error === 'string' && !error.includes("No MultiFormat Readers")) {
+            if (isMounted && onScanError && typeof error === 'string' && !error.includes("No MultiFormat Readers")) {
               onScanError(error);
             }
           }
         );
       } catch (err) {
-        console.error("Failed to start scanner:", err);
-        if (onScanError) onScanError(String(err));
+        if (isMounted) {
+          console.error("Failed to start scanner:", err);
+          if (onScanError) onScanError(String(err));
+        }
       }
     };
 
     startScanner();
 
     return () => {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().then(() => {
-          scannerRef.current?.clear();
-        }).catch(err => console.error("Error stopping scanner:", err));
+      isMounted = false;
+      if (scannerRef.current) {
+        const scannerInstance = scannerRef.current;
+        if (scannerInstance.isScanning) {
+          scannerInstance.stop().then(() => {
+            scannerInstance.clear();
+          }).catch(err => console.error("Error stopping scanner:", err));
+        } else {
+          try {
+            scannerInstance.clear();
+          } catch (e) {
+            // Ignore clear errors if not initialized
+          }
+        }
       }
     };
   }, [onScanSuccess, onScanError]);
