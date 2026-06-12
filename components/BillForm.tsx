@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bill, Category, Currency, CURRENCY_SYMBOLS, PaymentMode } from '../types';
 import { SparklesIcon } from './icons';
 import QRScanner from './QRScanner';
@@ -43,7 +43,7 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     });
   };
 
-  const handleScanSuccess = (decodedText: string) => {
+  const handleScanSuccess = useCallback((decodedText: string) => {
     try {
       let pa = '';
       let pn = '';
@@ -64,7 +64,7 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
         if (pn) setName(pn);
         if (am) {
           setAmount(am);
-        } else {
+        } else if (!amount) {
           const userAmount = window.prompt("Enter amount to pay:");
           if (userAmount && !isNaN(parseFloat(userAmount))) {
             setAmount(userAmount);
@@ -77,7 +77,7 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     } catch (e) {
       console.error("Invalid QR code", e);
     }
-  };
+  }, [amount]);
 
   const handlePayUPI = () => {
     if (!amount || !upiId) {
@@ -85,13 +85,24 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
       return;
     }
     const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name || 'Bill Payment')}&am=${amount}&cu=INR`;
-    window.location.href = upiUrl;
+
+    // Attempt to open UPI app using a hidden link to be more robust on some mobile browsers
+    const link = document.createElement('a');
+    link.href = upiUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
 
     setTimeout(() => {
       if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid.")) {
         setIsPaid(true);
       }
-    }, 1000);
+    }, 1500);
   };
 
   return (

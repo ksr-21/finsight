@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Currency, CURRENCY_SYMBOLS, Transaction, TransactionType, PaymentMode } from '../types';
 import {
   CategoryPreferences,
@@ -154,7 +154,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     });
   };
 
-  const handleScanSuccess = (decodedText: string) => {
+  const handleScanSuccess = useCallback((decodedText: string) => {
     // Standard UPI URL: upi://pay?pa=upiid@bank&pn=Name&am=100&cu=INR
     // Some codes might just be the UPI ID or a different format.
     try {
@@ -178,8 +178,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         if (pn) setDescription(pn);
         if (am) {
           setAmount(am);
-        } else {
-          // If no amount in QR, prompt user to enter it
+        } else if (!amount) {
+          // If no amount in QR and no amount entered, prompt user to enter it
           const userAmount = window.prompt("Enter amount to pay:");
           if (userAmount && !isNaN(parseFloat(userAmount))) {
             setAmount(userAmount);
@@ -188,17 +188,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
         setPaymentMode('Online');
         setShowScanner(false);
-
-        // If we have both UPI ID and amount, offer to pay immediately
-        if (pa && (am || amount)) {
-          // We can't automatically redirect as it might be jarring,
-          // but we'll show the Pay Now button clearly.
-        }
       }
     } catch (e) {
       console.error("Invalid QR code", e);
     }
-  };
+  }, [amount]);
 
   const [isUPISuccess, setIsUPISuccess] = useState(false);
 
@@ -211,15 +205,24 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
     const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(description || 'Payment')}&am=${finalAmount}&cu=INR`;
 
-    // Attempt to open UPI app
-    window.location.href = upiUrl;
+    // Attempt to open UPI app using a hidden link to be more robust on some mobile browsers
+    const link = document.createElement('a');
+    link.href = upiUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
 
     // Show confirmation dialog after a short delay to allow app switch
     setTimeout(() => {
       if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid and save.")) {
         setIsUPISuccess(true);
       }
-    }, 1000);
+    }, 1500);
   };
 
   return (
