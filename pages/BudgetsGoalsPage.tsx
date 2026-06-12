@@ -1102,6 +1102,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                 onSubmit={handleBillSubmit}
                 currency={currency}
                 initialData={editingBill}
+                exchangeRates={exchangeRates}
               />
             </motion.div>
           </div>
@@ -1190,6 +1191,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                   paymentMode: splittingBill.paymentMode || 'Online',
                   upiId: splittingBill.upiId
                 } : null}
+                exchangeRates={exchangeRates}
               />
             </motion.div>
           </div>

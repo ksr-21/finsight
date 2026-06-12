@@ -18,6 +18,7 @@ import QRScanner from './QRScanner';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatAmount } from '../services/utils';
 import { generateUPIUrl } from '../services/upi';
+import { currencyService } from '../services/currencyService';
 
 interface TransactionFormProps {
   onSubmit: (transaction: Omit<Transaction, 'id'>) => void;
@@ -25,6 +26,7 @@ interface TransactionFormProps {
   userId: string;
   initialData?: Transaction | null;
   initialShowScanner?: boolean;
+  exchangeRates?: Record<string, number>;
 }
 
 const getToday = () => {
@@ -39,6 +41,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   userId,
   initialData,
   initialShowScanner,
+  exchangeRates = {},
 }) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -184,6 +187,18 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         pa = params.get('pa') || '';
         pn = params.get('pn') || '';
         am = params.get('am') || '';
+        const cu = params.get('cu') || 'INR';
+
+        // Convert scanned amount (usually INR) to app currency
+        if (am && cu && exchangeRates) {
+          const convertedAmount = currencyService.convert(
+            parseFloat(am),
+            cu as Currency,
+            currency,
+            exchangeRates
+          );
+          am = convertedAmount.toFixed(2);
+        }
       } else if (decodedText.includes('@')) {
         // Simple UPI ID scan
         pa = decodedText.trim();
@@ -264,11 +279,19 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     const cleanUpiId = upiId.trim();
     const isAmountModified = scannedAmount !== null && parseFloat(finalAmount) !== parseFloat(scannedAmount);
 
-    console.log('[TransactionForm] Paying UPI:', { cleanUpiId, finalAmount, description });
+    // Convert app amount back to INR for UPI payment
+    const paymentAmountINR = currencyService.convert(
+      parseFloat(finalAmount),
+      currency,
+      Currency.INR,
+      exchangeRates
+    ).toFixed(2);
+
+    console.log('[TransactionForm] Paying UPI:', { cleanUpiId, finalAmount, paymentAmountINR, description });
 
     const upiUrl = generateUPIUrl(upiParams, {
       pa: cleanUpiId,
-      am: finalAmount,
+      am: paymentAmountINR,
       description: (description || category).trim(),
       isAmountModified
     });
