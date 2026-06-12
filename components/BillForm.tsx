@@ -45,16 +45,31 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
 
   const handleScanSuccess = (decodedText: string) => {
     try {
-      const url = new URL(decodedText);
-      if (url.protocol === 'upi:') {
-        const params = new URLSearchParams(url.search);
-        const pa = params.get('pa');
-        const pn = params.get('pn');
-        const am = params.get('am');
+      let pa = '';
+      let pn = '';
+      let am = '';
 
-        if (pa) setUpiId(pa);
+      if (decodedText.startsWith('upi://pay')) {
+        const url = new URL(decodedText);
+        const params = new URLSearchParams(url.search);
+        pa = params.get('pa') || '';
+        pn = params.get('pn') || '';
+        am = params.get('am') || '';
+      } else if (decodedText.includes('@')) {
+        pa = decodedText.trim();
+      }
+
+      if (pa) {
+        setUpiId(pa);
         if (pn) setName(pn);
-        if (am) setAmount(am);
+        if (am) {
+          setAmount(am);
+        } else {
+          const userAmount = window.prompt("Enter amount to pay:");
+          if (userAmount && !isNaN(parseFloat(userAmount))) {
+            setAmount(userAmount);
+          }
+        }
 
         setPaymentMode('Online');
         setShowScanner(false);
@@ -65,9 +80,18 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
   };
 
   const handlePayUPI = () => {
-    if (!amount || !upiId) return;
+    if (!amount || !upiId) {
+      alert("Please ensure amount and UPI ID are set.");
+      return;
+    }
     const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name || 'Bill Payment')}&am=${amount}&cu=INR`;
     window.location.href = upiUrl;
+
+    setTimeout(() => {
+      if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid.")) {
+        setIsPaid(true);
+      }
+    }, 1000);
   };
 
   return (
