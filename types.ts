@@ -125,8 +125,10 @@ export interface FinancialHealthScore {
 }
 
 export interface ChatMessage {
+    id: string;
     role: 'user' | 'model';
     text: string;
+    timestamp: string; // ISO string
 }
 
 export interface Notification {

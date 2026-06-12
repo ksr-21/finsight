@@ -16,6 +16,7 @@ import BudgetsGoalsPage from './pages/BudgetsGoalsPage';
 import NewsPage from './pages/NewsPage';
 import InsightsPage from './pages/InsightsPage';
 import NotificationsPage from './pages/NotificationsPage';
+import ChatPage from './pages/ChatPage';
 import AiChatbot from './components/AiChatbot';
 import ScrollToTop from './components/ScrollToTop';
 import { currencyService } from './services/currencyService';
@@ -32,11 +33,13 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [currency, setCurrency] = useState<Currency>(Currency.USD);
+  const [currency, setCurrency] = useState<Currency>(Currency.INR);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [offlineCount, setOfflineCount] = useState<number>(0);
 
   const balance = transactions.reduce((acc, t) => acc + (t.type === 'Income' ? t.amount : -t.amount), 0);
 
@@ -68,6 +71,9 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         setExchangeRates(rateData.rates);
       }
 
+      // Force INR for all users as requested
+      setCurrency(Currency.INR);
+
       // Load preferences from local storage directly
       const prefsJSON = localStorage.getItem(`finsight_preferences_${user.uid}`);
       if (prefsJSON) {
@@ -96,6 +102,34 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   useEffect(() => {
     loadUserData();
   }, [loadUserData]);
+
+  useEffect(() => {
+    const handleOnline = async () => {
+      if (user.uid !== 'guest_user') {
+        setIsSyncing(true);
+        await api.syncOfflineData(user.uid);
+        await loadUserData();
+        setIsSyncing(false);
+        setOfflineCount(0);
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    // Periodically check for offline items and try to sync if online
+    const interval = setInterval(() => {
+      const count = api.getOfflineQueueStatus(user.uid);
+      setOfflineCount(count);
+      if (count > 0 && navigator.onLine) {
+        handleOnline();
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
+    };
+  }, [user.uid, loadUserData]);
 
 
   useEffect(() => {
@@ -171,15 +205,19 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 font-sans">
       <AnimatePresence>
-        {syncError && (
+        {(syncError || offlineCount > 0 || isSyncing) && (
           <motion.div
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-rose-500 text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-white/20 backdrop-blur-md"
+            className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 border backdrop-blur-md ${
+              syncError ? 'bg-rose-500 text-white border-white/20' : 'bg-amber-500 text-white border-white/20'
+            }`}
           >
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            <span className="text-sm font-bold tracking-tight">{syncError}</span>
+            <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-white animate-spin' : 'bg-white animate-pulse'}`} />
+            <span className="text-sm font-bold tracking-tight">
+              {isSyncing ? 'Syncing data...' : syncError || `${offlineCount} pending transaction(s) to sync`}
+            </span>
             <button
               onClick={() => setSyncError(null)}
               className="ml-2 hover:bg-white/20 p-1 rounded-full transition-colors"
@@ -189,6 +227,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
 
       <ScrollToTop />
       <Header 
@@ -206,12 +245,13 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         <Routes>
           <Route path="/" element={<Navigate to="/transactions" replace />} />
           <Route path="/dashboard" element={<DashboardPage transactions={convertedTransactions} currency={currency} user={convertedUser} onRefreshData={loadUserData} />} />
-          <Route path="/transactions" element={<TransactionsPage currency={currency} user={convertedUser} transactions={convertedTransactions} onRefresh={loadUserData} onAddTransaction={handleAddTransaction} />} />
+          <Route path="/transactions" element={<TransactionsPage currency={currency} user={convertedUser} transactions={convertedTransactions} onRefresh={loadUserData} onOpenAddModal={openAddModal} />} />
           <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={convertedTransactions} user={convertedUser} onRefreshData={loadUserData} />} />
           <Route path="/horizon" element={<WealthHorizonPage transactions={convertedTransactions} currency={currency} />} />
           <Route path="/insights" element={<InsightsPage transactions={convertedTransactions} currency={currency} />} />
           <Route path="/notifications" element={<NotificationsPage user={user} currency={currency} />} />
           <Route path="/news" element={<NewsPage />} />
+          <Route path="/chat" element={<ChatPage user={convertedUser} transactions={convertedTransactions} currency={currency} balance={balance} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -323,7 +363,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       {/* Global Transaction Modal */}
       <AnimatePresence>
         {isFormModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

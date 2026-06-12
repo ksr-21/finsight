@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   BILLS: 'bills',
   PORTFOLIO: 'portfolio',
   DEBTS: 'debts',
+  OFFLINE_QUEUE: 'offline_queue'
 };
 
 // Helper for user-scoped keys
@@ -59,9 +60,13 @@ export const api = {
       try {
         result = await firestore.addTransactionForUser(userId, t);
       } catch (e) {
-        result = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
+        result = { ...t, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as Transaction;
         const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
         setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, result]);
+
+        // Add to offline queue
+        const queue = getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE);
+        setLocal(userId, STORAGE_KEYS.OFFLINE_QUEUE, [...queue, { type: 'ADD_TRANSACTION', data: t }]);
       }
     }
 
@@ -458,5 +463,66 @@ export const api = {
       return;
     }
     await firestore.updateUserProfile(userId, data);
+  },
+
+  getChatMessages: async (userId: string): Promise<ChatMessage[]> => {
+    if (userId === 'guest_user') {
+      return getLocal<ChatMessage>(userId, 'chat_messages');
+    }
+    try {
+      return await firestore.getChatMessagesForUser(userId);
+    } catch (e) {
+      return getLocal<ChatMessage>(userId, 'chat_messages');
+    }
+  },
+
+  addChatMessage: async (userId: string, message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> => {
+    if (userId === 'guest_user') {
+      const newMessage = { ...message, id: Math.random().toString(36).substr(2, 9) } as ChatMessage;
+      const current = getLocal<ChatMessage>(userId, 'chat_messages');
+      setLocal(userId, 'chat_messages', [...current, newMessage]);
+      return newMessage;
+    }
+    try {
+      return await firestore.addChatMessageForUser(userId, message);
+    } catch (e) {
+      const newMessage = { ...message, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as ChatMessage;
+      const current = getLocal<ChatMessage>(userId, 'chat_messages');
+      setLocal(userId, 'chat_messages', [...current, newMessage]);
+
+      // Add to offline queue
+      const queue = getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE);
+      setLocal(userId, STORAGE_KEYS.OFFLINE_QUEUE, [...queue, { type: 'ADD_CHAT_MESSAGE', data: message }]);
+
+      return newMessage;
+    }
+  },
+
+  syncOfflineData: async (userId: string): Promise<void> => {
+    if (userId === 'guest_user') return;
+
+    const queue = getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE);
+    if (queue.length === 0) return;
+
+    const remainingQueue: any[] = [];
+
+    for (const item of queue) {
+      try {
+        if (item.type === 'ADD_TRANSACTION') {
+          await firestore.addTransactionForUser(userId, item.data);
+        } else if (item.type === 'ADD_CHAT_MESSAGE') {
+          await firestore.addChatMessageForUser(userId, item.data);
+        }
+      } catch (e) {
+        console.error("Sync failed for item:", item, e);
+        remainingQueue.push(item);
+      }
+    }
+
+    setLocal(userId, STORAGE_KEYS.OFFLINE_QUEUE, remainingQueue);
+  },
+
+  getOfflineQueueStatus: (userId: string): number => {
+    return getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE).length;
   }
 };

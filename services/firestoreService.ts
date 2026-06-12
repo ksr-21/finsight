@@ -91,7 +91,7 @@ export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
         const createdAt = new Date();
         const defaultPreferences: UserPreferences = {
             isDarkMode: false,
-            currency: Currency.USD
+            currency: Currency.INR
         };
 
         try {
@@ -126,7 +126,7 @@ export const getUserPreferences = async (userId: string): Promise<UserPreference
         return docSnap.data() as UserPreferences;
     }
     // Return default if not found
-    return { isDarkMode: false, currency: Currency.USD };
+    return { isDarkMode: false, currency: Currency.INR };
 };
 
 export const saveUserPreferences = async (userId: string, preferences: UserPreferences): Promise<void> => {
@@ -275,4 +275,18 @@ export const updateDebtForUser = async (userId: string, id: string, debt: Partia
 export const deleteDebtForUser = async (userId: string, id: string): Promise<void> => {
     const docRef = doc(db, 'users', userId, 'debts', id);
     await deleteDoc(docRef);
+};
+
+// Chat Messages
+export const getChatMessagesForUser = async (userId: string): Promise<ChatMessage[]> => {
+    const colRef = collection(db, 'users', userId, 'chat_messages');
+    const q = query(colRef, orderBy('timestamp', 'asc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+};
+
+export const addChatMessageForUser = async (userId: string, message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> => {
+    const colRef = collection(db, 'users', userId, 'chat_messages');
+    const docRef = await addDoc(colRef, message);
+    return { id: docRef.id, ...message } as ChatMessage;
 };

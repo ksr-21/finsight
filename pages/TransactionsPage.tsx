@@ -12,7 +12,7 @@ interface TransactionsPageProps {
   user: User;
   transactions?: Transaction[];
   onRefresh?: () => void;
-  onAddTransaction?: (t: Omit<Transaction, 'id'>) => Promise<void>;
+  onOpenAddModal?: () => void;
 }
 
 const TransactionsPage: React.FC<TransactionsPageProps> = ({
@@ -20,11 +20,10 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
   user,
   transactions: propTransactions,
   onRefresh,
-  onAddTransaction
+  onOpenAddModal
 }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [filterType, setFilterType] = useState<string>('All');
@@ -71,21 +70,6 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
       console.error('Error fetching transactions:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAddTransaction = async (t: Omit<Transaction, 'id'>) => {
-    try {
-      if (onAddTransaction) {
-        await onAddTransaction(t);
-      } else {
-        await api.addTransaction(user.uid, t);
-        if (onRefresh) onRefresh();
-        else fetchTransactions();
-      }
-      setShowForm(false);
-    } catch (error) {
-      console.error('Error adding transaction:', error);
     }
   };
 
@@ -219,7 +203,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
             </motion.button>
           )}
           <button 
-            onClick={() => setShowForm(true)}
+            onClick={onOpenAddModal}
             className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
           >
             <PlusIcon className="w-5 h-5" />
@@ -523,34 +507,6 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
         </div>
       </div>
 
-      {/* Add Transaction Modal */}
-      <AnimatePresence>
-        {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl dark:bg-gray-800 md:rounded-[2.5rem] md:p-8"
-            >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-text-primary dark:text-white">New Transaction</h2>
-                <button 
-                  onClick={() => setShowForm(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                >
-                  <PlusIcon className="w-6 h-6 rotate-45 text-gray-400" />
-                </button>
-              </div>
-              <TransactionForm
-                onSubmit={handleAddTransaction}
-                currency={currency}
-                userId={user.uid}
-              />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

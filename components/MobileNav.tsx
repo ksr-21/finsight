@@ -12,7 +12,7 @@ const MobileNav: React.FC = () => {
   const navItems = [
     { label: 'Dash', path: '/dashboard', icon: ChartPieIcon },
     { label: 'Trans', path: '/transactions', icon: WalletIcon },
-    { label: 'Insights', path: '/insights', icon: SparklesIcon },
+    { label: 'Chat', path: '/chat', icon: SparklesIcon },
     { label: 'Budgets', path: '/budgets', icon: ScaleIcon },
     { label: 'News', path: '/news', icon: NewspaperIcon },
   ];
