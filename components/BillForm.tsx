@@ -19,8 +19,10 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
   const [showScanner, setShowScanner] = useState(false);
   const [upiId, setUpiId] = useState('');
+  const [upiParams, setUpiParams] = useState<Record<string, string>>({});
   const [showAmountPrompt, setShowAmountPrompt] = useState(false);
   const [tempAmount, setTempAmount] = useState('');
+  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -51,10 +53,16 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
       let pa = '';
       let pn = '';
       let am = '';
+      const newUpiParams: Record<string, string> = {};
 
       if (decodedText.startsWith('upi://pay')) {
         const url = new URL(decodedText);
         const params = new URLSearchParams(url.search);
+
+        params.forEach((value, key) => {
+          newUpiParams[key] = value;
+        });
+
         pa = params.get('pa') || '';
         pn = params.get('pn') || '';
         am = params.get('am') || '';
@@ -64,6 +72,7 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
 
       if (pa) {
         setUpiId(pa);
+        setUpiParams(newUpiParams);
         if (pn) setName(pn);
         if (am) {
           setAmount(am);
@@ -79,25 +88,13 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     }
   }, []);
 
-  const handlePayUPI = () => {
-    if (!amount || !upiId) {
-      alert("Please ensure amount and UPI ID are set.");
-      return;
-    }
-
-    // Fix GPay "amount is so more" by strictly formatting to 2 decimal places
-    // Also ensure we are sending the amount in INR for UPI
-    let amountInINR = parseFloat(amount);
-
-    const formattedAmount = amountInINR.toFixed(2);
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name || 'Bill Payment')}&am=${formattedAmount}&cu=INR`;
-
-    window.location.href = upiUrl;
+  const handleReturnFromPayment = useCallback(() => {
+    if (!isWaitingForPayment) return;
+    setIsWaitingForPayment(false);
 
     setTimeout(() => {
       if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid.")) {
         setIsPaid(true);
-        // Automatically submit the form
         if (name && amount && dueDate) {
           onSubmit({
             name,
@@ -110,7 +107,55 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
           });
         }
       }
-    }, 1000);
+    }, 500);
+  }, [isWaitingForPayment, name, amount, dueDate, category, upiId, onSubmit]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isWaitingForPayment) {
+        handleReturnFromPayment();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [isWaitingForPayment, handleReturnFromPayment]);
+
+  const handlePayUPI = () => {
+    if (!amount || !upiId) {
+      alert("Please ensure amount and UPI ID are set.");
+      return;
+    }
+
+    const amountInINR = parseFloat(amount);
+    const formattedAmount = amountInINR.toFixed(2);
+
+    const params = new URLSearchParams();
+    Object.entries(upiParams).forEach(([key, value]) => {
+      params.set(key, String(value));
+    });
+
+    params.set('pa', upiId);
+    params.set('am', formattedAmount);
+    params.set('cu', 'INR');
+
+    if (!params.has('tr')) {
+      params.set('tr', 'TR' + Date.now() + Math.floor(Math.random() * 1000));
+    }
+
+    if (name && !params.has('pn')) {
+      params.set('pn', name);
+    }
+
+    const upiUrl = `upi://pay?${params.toString()}`;
+
+    setIsWaitingForPayment(true);
+    window.location.href = upiUrl;
   };
 
   return (
