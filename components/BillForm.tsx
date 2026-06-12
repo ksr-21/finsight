@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bill, Category, Currency, CURRENCY_SYMBOLS, PaymentMode } from '../types';
 import { SparklesIcon } from './icons';
 import QRScanner from './QRScanner';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface BillFormProps {
   onSubmit: (bill: Omit<Bill, 'id'>) => void;
@@ -18,6 +19,8 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
   const [showScanner, setShowScanner] = useState(false);
   const [upiId, setUpiId] = useState('');
+  const [showAmountPrompt, setShowAmountPrompt] = useState(false);
+  const [tempAmount, setTempAmount] = useState('');
 
   useEffect(() => {
     if (initialData) {
@@ -43,7 +46,7 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     });
   };
 
-  const handleScanSuccess = (decodedText: string) => {
+  const handleScanSuccess = useCallback((decodedText: string) => {
     try {
       let pa = '';
       let pn = '';
@@ -65,10 +68,7 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
         if (am) {
           setAmount(am);
         } else {
-          const userAmount = window.prompt("Enter amount to pay:");
-          if (userAmount && !isNaN(parseFloat(userAmount))) {
-            setAmount(userAmount);
-          }
+          setShowAmountPrompt(true);
         }
 
         setPaymentMode('Online');
@@ -77,19 +77,38 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
     } catch (e) {
       console.error("Invalid QR code", e);
     }
-  };
+  }, []);
 
   const handlePayUPI = () => {
     if (!amount || !upiId) {
       alert("Please ensure amount and UPI ID are set.");
       return;
     }
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name || 'Bill Payment')}&am=${amount}&cu=INR`;
+
+    // Fix GPay "amount is so more" by strictly formatting to 2 decimal places
+    // Also ensure we are sending the amount in INR for UPI
+    let amountInINR = parseFloat(amount);
+
+    const formattedAmount = amountInINR.toFixed(2);
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name || 'Bill Payment')}&am=${formattedAmount}&cu=INR`;
+
     window.location.href = upiUrl;
 
     setTimeout(() => {
       if (window.confirm("Did you complete the UPI payment? Click OK to mark as paid.")) {
         setIsPaid(true);
+        // Automatically submit the form
+        if (name && amount && dueDate) {
+          onSubmit({
+            name,
+            amount: parseFloat(amount),
+            dueDate,
+            category,
+            isPaid: true,
+            paymentMode: 'Online',
+            upiId: upiId
+          });
+        }
       }
     }, 1000);
   };
@@ -102,6 +121,58 @@ const BillForm: React.FC<BillFormProps> = ({ onSubmit, currency, initialData }) 
           onClose={() => setShowScanner(false)}
         />
       )}
+
+      {/* Amount Prompt Modal */}
+      <AnimatePresence>
+        {showAmountPrompt && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-[2rem] p-8 shadow-2xl border border-gray-100 dark:border-gray-700"
+            >
+              <h3 className="text-xl font-bold text-text-primary dark:text-white mb-4 text-center">Enter Amount</h3>
+              <div className="relative mb-6">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-indigo-600">
+                  {CURRENCY_SYMBOLS[currency]}
+                </span>
+                <input
+                  autoFocus
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={tempAmount}
+                  onChange={(e) => setTempAmount(e.target.value)}
+                  className="w-full pl-10 pr-4 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl text-xl font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAmountPrompt(false)}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-text-secondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (tempAmount && !isNaN(parseFloat(tempAmount))) {
+                      setAmount(tempAmount);
+                      setShowAmountPrompt(false);
+                      setTempAmount('');
+                    }
+                  }}
+                  className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {paymentMode === 'Online' && (
         <div className="flex gap-2">
