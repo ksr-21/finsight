@@ -125,9 +125,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ user, transactions, currency, balan
   }
 
   return (
-    <div className="fixed inset-0 top-16 bottom-16 flex flex-col bg-[#efe7de] dark:bg-gray-950 md:relative md:inset-auto md:h-[calc(100vh-5rem)] md:flex-1">
+    <div className="fixed inset-0 flex flex-col bg-[#efe7de] dark:bg-gray-950 md:relative md:inset-auto md:h-[calc(100vh-5rem)] md:flex-1">
       {/* Header */}
-      <div className="bg-indigo-600 px-4 py-3 text-white flex items-center gap-3 shadow-md z-10">
+      <div className="sticky top-0 bg-indigo-600 px-4 py-3 text-white flex items-center gap-3 shadow-md z-20">
         <button onClick={() => navigate(-1)} className="p-1 hover:bg-white/10 rounded-full">
           <ArrowLeftIcon className="w-6 h-6" />
         </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Transaction, Currency, User, CURRENCY_SYMBOLS } from './types';
 import Header from './components/Header';
 import MobileNav from './components/MobileNav';
@@ -58,12 +58,23 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
     };
   });
 
-  const loadUserData = useCallback(async () => {
+  const loadUserData = useCallback(async (force = false) => {
     try {
+      const lastSyncKey = `finsight_last_sync_${user.uid}`;
+      const lastSync = localStorage.getItem(lastSyncKey);
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000;
+
+      const shouldFetch = force || !lastSync || (now - parseInt(lastSync)) >= twelveHours || user.uid === 'guest_user';
+
       setIsLoadingData(true);
       setSyncError(null);
 
-      const trans = await api.getTransactions(user.uid);
+      const trans = await api.getTransactions(user.uid, shouldFetch);
+
+      if (shouldFetch && user.uid !== 'guest_user') {
+        localStorage.setItem(lastSyncKey, Date.now().toString());
+      }
 
       // Load rates
       const rateData = await currencyService.getRates(Currency.USD);
@@ -100,7 +111,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
   // Effect to load all user data on initial mount
   useEffect(() => {
-    loadUserData();
+    loadUserData(false);
   }, [loadUserData]);
 
   useEffect(() => {
@@ -108,7 +119,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       if (user.uid !== 'guest_user') {
         setIsSyncing(true);
         await api.syncOfflineData(user.uid);
-        await loadUserData();
+        await loadUserData(false);
         setIsSyncing(false);
         setOfflineCount(0);
       }
@@ -125,9 +136,17 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       }
     }, 10000);
 
+    // Sync data every 12 hours
+    const twelveHourInterval = setInterval(() => {
+      if (user.uid !== 'guest_user' && navigator.onLine) {
+        loadUserData(true);
+      }
+    }, 12 * 60 * 60 * 1000);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       clearInterval(interval);
+      clearInterval(twelveHourInterval);
     };
   }, [user.uid, loadUserData]);
 
@@ -149,7 +168,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
     // Convert amount back to USD before saving
     const baseAmount = currencyService.convertToBase(transaction.amount, currency, exchangeRates);
     await api.addTransaction(user.uid, { ...transaction, amount: baseAmount });
-    await loadUserData();
+    await loadUserData(true);
     setIsFormModalOpen(false);
   };
 
@@ -158,7 +177,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       // Convert amount back to USD before saving
       const baseAmount = currencyService.convertToBase(transactionData.amount, currency, exchangeRates);
       await api.updateTransaction(user.uid, editingTransaction.id, { ...transactionData, amount: baseAmount });
-      await loadUserData();
+      await loadUserData(true);
       setEditingTransaction(null);
       setIsFormModalOpen(false);
     }
@@ -166,7 +185,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
   const handleDeleteTransaction = async (id: string) => {
     await api.deleteTransaction(user.uid, id);
-    await loadUserData();
+    await loadUserData(true);
   };
 
   const openAddModal = () => {
@@ -190,6 +209,9 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       setExchangeRates(rateData.rates);
     }
   };
+
+  const location = useLocation();
+  const isChatPage = location.pathname === '/chat';
   
   if (isLoadingData) {
     return (
@@ -230,18 +252,20 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
 
       <ScrollToTop />
-      <Header 
-        user={convertedUser}
-        isDarkMode={isDarkMode} 
-        toggleDarkMode={toggleDarkMode} 
-        currency={currency}
-        onCurrencyChange={handleCurrencyChange}
-        onAddTransaction={openAddModal}
-        onOpenProfile={() => setIsProfileOpen(true)}
-        transactions={convertedTransactions}
-      />
+      {!isChatPage && (
+        <Header
+          user={convertedUser}
+          isDarkMode={isDarkMode}
+          toggleDarkMode={toggleDarkMode}
+          currency={currency}
+          onCurrencyChange={handleCurrencyChange}
+          onAddTransaction={openAddModal}
+          onOpenProfile={() => setIsProfileOpen(true)}
+          transactions={convertedTransactions}
+        />
+      )}
 
-      <main className="max-w-7xl mx-auto pb-24 md:pb-8">
+      <main className={`max-w-7xl mx-auto ${isChatPage ? '' : 'pb-24 md:pb-8'}`}>
         <Routes>
           <Route path="/" element={<Navigate to="/transactions" replace />} />
           <Route path="/dashboard" element={<DashboardPage transactions={convertedTransactions} currency={currency} user={convertedUser} onRefreshData={loadUserData} />} />
@@ -256,9 +280,9 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         </Routes>
       </main>
 
-      <AiChatbot transactions={transactions} currency={currency} balance={balance} />
+      {!isChatPage && <AiChatbot transactions={transactions} currency={currency} balance={balance} />}
 
-      <MobileNav />
+      {!isChatPage && <MobileNav />}
 
       {/* Profile Modal */}
       <AnimatePresence>

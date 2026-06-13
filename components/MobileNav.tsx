@@ -5,14 +5,14 @@ import {
   WalletIcon,
   ScaleIcon,
   NewspaperIcon,
-  SparklesIcon
+  TrendingUpIcon
 } from './icons';
 
 const MobileNav: React.FC = () => {
   const navItems = [
     { label: 'Dash', path: '/dashboard', icon: ChartPieIcon },
     { label: 'Trans', path: '/transactions', icon: WalletIcon },
-    { label: 'Chat', path: '/chat', icon: SparklesIcon },
+    { label: 'Insights', path: '/insights', icon: TrendingUpIcon },
     { label: 'Budgets', path: '/budgets', icon: ScaleIcon },
     { label: 'News', path: '/news', icon: NewspaperIcon },
   ];
