@@ -37,9 +37,6 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [offlineCount, setOfflineCount] = useState<number>(0);
 
   const balance = transactions.reduce((acc, t) => acc + (t.type === 'Income' ? t.amount : -t.amount), 0);
 
@@ -58,17 +55,18 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
     };
   });
 
-  const loadUserData = useCallback(async (force = false) => {
+  const loadUserData = useCallback(async (force = false, silent = false) => {
     try {
       const lastSyncKey = `finsight_last_sync_${user.uid}`;
       const lastSync = localStorage.getItem(lastSyncKey);
       const now = Date.now();
-      const twelveHours = 12 * 60 * 60 * 1000;
+      const threeHours = 3 * 60 * 60 * 1000;
 
-      const shouldFetch = force || !lastSync || (now - parseInt(lastSync)) >= twelveHours || user.uid === 'guest_user';
+      const shouldFetch = force || !lastSync || (now - parseInt(lastSync)) >= threeHours || user.uid === 'guest_user';
 
-      setIsLoadingData(true);
-      setSyncError(null);
+      if (!silent) {
+        setIsLoadingData(true);
+      }
 
       const trans = await api.getTransactions(user.uid, shouldFetch);
 
@@ -103,9 +101,10 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
     } catch (e) {
       console.error("Failed to load user data", e);
-      setSyncError("Live sync unavailable. Using offline data.");
     } finally {
-      setIsLoadingData(false);
+      if (!silent) {
+        setIsLoadingData(false);
+      }
     }
   }, [user.uid]);
 
@@ -117,11 +116,8 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   useEffect(() => {
     const handleOnline = async () => {
       if (user.uid !== 'guest_user') {
-        setIsSyncing(true);
         await api.syncOfflineData(user.uid);
-        await loadUserData(false);
-        setIsSyncing(false);
-        setOfflineCount(0);
+        await loadUserData(false, true);
       }
     };
 
@@ -130,23 +126,22 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
     // Periodically check for offline items and try to sync if online
     const interval = setInterval(() => {
       const count = api.getOfflineQueueStatus(user.uid);
-      setOfflineCount(count);
       if (count > 0 && navigator.onLine) {
         handleOnline();
       }
     }, 10000);
 
-    // Sync data every 12 hours
-    const twelveHourInterval = setInterval(() => {
+    // Sync data every 3 hours
+    const threeHourInterval = setInterval(() => {
       if (user.uid !== 'guest_user' && navigator.onLine) {
-        loadUserData(true);
+        loadUserData(true, true);
       }
-    }, 12 * 60 * 60 * 1000);
+    }, 3 * 60 * 60 * 1000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       clearInterval(interval);
-      clearInterval(twelveHourInterval);
+      clearInterval(threeHourInterval);
     };
   }, [user.uid, loadUserData]);
 
@@ -226,29 +221,6 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 font-sans">
-      <AnimatePresence>
-        {(syncError || offlineCount > 0 || isSyncing) && (
-          <motion.div
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -100, opacity: 0 }}
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 border backdrop-blur-md ${
-              syncError ? 'bg-rose-500 text-white border-white/20' : 'bg-amber-500 text-white border-white/20'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-white animate-spin' : 'bg-white animate-pulse'}`} />
-            <span className="text-sm font-bold tracking-tight">
-              {isSyncing ? 'Syncing data...' : syncError || `${offlineCount} pending transaction(s) to sync`}
-            </span>
-            <button
-              onClick={() => setSyncError(null)}
-              className="ml-2 hover:bg-white/20 p-1 rounded-full transition-colors"
-            >
-              <PlusIcon className="w-4 h-4 rotate-45" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
 
       <ScrollToTop />
