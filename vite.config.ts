@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
             enabled: true
           },
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg'],
+          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png'],
           manifest: {
             id: '/',
             name: 'FinSight AI',

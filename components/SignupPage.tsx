@@ -32,7 +32,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onBack }) => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <ChartPieIcon className="h-8 w-8 text-white" />
+            <img src="/assets/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
