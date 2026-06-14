@@ -91,7 +91,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
             <div className="w-full max-w-sm">
                 <div className="flex justify-center items-center mb-6">
                     <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                        <ChartPieIcon className="h-6 w-6 text-white" />
+                        <img src="/assets/logo.png" alt="Logo" className="h-6 w-6 object-contain" />
                     </div>
                     <h1 className="ml-3 text-3xl font-bold text-text-primary dark:text-white">
                         FinSight<span className="text-indigo-600">.</span>

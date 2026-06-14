@@ -8,6 +8,7 @@ FinSight AI has been converted into a fully functional Progressive Web App (PWA)
 - `index.html`: Added mobile meta tags, PWA icons, and native-feel CSS.
 - `vercel.json`: Added SPA routing configuration for Vercel.
 - `public/`: Added PWA icons (`pwa-192x192.png`, `pwa-512x512.png`, `apple-touch-icon.png`, `favicon.png`, `logo.svg`).
+- `public/assets/`: Added `logo.png` for application-wide branding.
 
 ## 1. Installation & Build
 To install dependencies:
