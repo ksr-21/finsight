@@ -1,5 +1,5 @@
 {
-  "name": "FinSight AI: Expense & Insights Platform",
+  "name": "FinSight AI",
   "description": "An intelligent expense management and financial insights platform that tracks income and expenses, analyzes spending patterns with AI, provides budget predictions, and offers personalized financial advice via an AI chatbot.",
   "requestFramePermissions": [
     "microphone"
