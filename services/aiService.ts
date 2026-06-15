@@ -2,6 +2,7 @@ import { Transaction, Category } from "../types";
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const GROQ_MODEL = "llama-3.3-70b-versatile"; 
 const OPENROUTER_MODEL = "google/gemini-2.0-flash-001";
@@ -58,16 +59,50 @@ const callOpenRouter = async (prompt: string, isJson = false) => {
   }, 'OpenRouter');
 };
 
+const callGemini = async (prompt: string, isJson = false) => {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
+    throw new Error("AI_CONFIG_ERROR: Gemini API key is missing or invalid");
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.3,
+        responseMimeType: isJson ? "application/json" : "text/plain",
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Gemini API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
+};
+
 const callAI = async (prompt: string, isJson = false) => {
+  // Try providers in order: Groq -> Gemini -> OpenRouter
   try {
     return await callGroq(prompt, isJson);
   } catch (groqError: any) {
-    console.warn("Groq failed, trying OpenRouter...", groqError.message);
+    console.warn("Groq failed, trying Gemini...", groqError.message);
     try {
-      return await callOpenRouter(prompt, isJson);
-    } catch (orError: any) {
-      console.error("All AI providers failed");
-      throw orError;
+      return await callGemini(prompt, isJson);
+    } catch (geminiError: any) {
+      console.warn("Gemini failed, trying OpenRouter...", geminiError.message);
+      try {
+        return await callOpenRouter(prompt, isJson);
+      } catch (orError: any) {
+        console.error("All AI providers failed");
+        throw orError;
+      }
     }
   }
 };

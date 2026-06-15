@@ -475,21 +475,31 @@ const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, colo
       indigo: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400',
     };
 
+    // Dynamic font size based on amount length
+    const getFontSize = (text: string) => {
+      if (text.length > 15) return 'text-xl';
+      if (text.length > 12) return 'text-2xl';
+      if (text.length > 10) return 'text-3xl';
+      return 'text-4xl';
+    };
+
+    const fontSizeClass = getFontSize(formattedAmount);
+
     return (
         <motion.div 
-          className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group"
+          className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group h-full flex flex-col justify-between"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
         >
             <div className="relative z-10">
-              <div className={`w-12 h-12 rounded-2xl ${colorClasses[color]} flex items-center justify-center mb-6 transition-transform group-hover:scale-110 duration-300`}>
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl ${colorClasses[color]} flex items-center justify-center mb-4 md:mb-6 transition-transform group-hover:scale-110 duration-300`}>
                 {icon}
               </div>
-              <p className="text-sm font-medium text-text-secondary dark:text-gray-400 mb-1 uppercase tracking-wider">{title}</p>
-              <div className="flex items-baseline gap-1">
-                <p className={`text-4xl font-bold text-text-primary dark:text-white tracking-tighter ${isNegative && color === 'indigo' ? 'text-rose-500' : ''}`}>
+              <p className="text-[10px] md:text-sm font-medium text-text-secondary dark:text-gray-400 mb-1 uppercase tracking-wider truncate">{title}</p>
+              <div className="flex items-baseline gap-1 overflow-hidden">
+                <p className={`${fontSizeClass} font-bold text-text-primary dark:text-white tracking-tighter break-all ${isNegative && color === 'indigo' ? 'text-rose-500' : ''}`}>
                   {isNegative && '-'}{formattedAmount}
                 </p>
               </div>

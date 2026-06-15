@@ -52,13 +52,19 @@ const formatAuthError = (errorCode: string): string => {
     }
 }
 
-export const signUpWithEmail = async (email: string, password: string, displayName?: string): Promise<FirebaseUser> => {
+export const signUpWithEmail = async (
+    email: string,
+    password: string,
+    displayName?: string,
+    initialCash: number = 0,
+    initialOnline: number = 0
+): Promise<FirebaseUser> => {
     try {
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
         if (displayName) {
             await updateProfile(user, { displayName });
         }
-        await createUserDocumentFromAuth(user);
+        await createUserDocumentFromAuth(user, initialCash, initialOnline);
         return user;
     } catch (error: any) {
         throw new Error(formatAuthError(error.code));
@@ -81,7 +87,11 @@ export const signOutUser = async (): Promise<void> => {
 
 // --- Firestore User Profile ---
 
-export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
+export const createUserDocumentFromAuth = async (
+    user: FirebaseUser,
+    initialCash: number = 0,
+    initialOnline: number = 0
+) => {
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
     const userSnapshot = await getDoc(userDocRef);
@@ -99,8 +109,8 @@ export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
                 email,
                 displayName,
                 createdAt,
-                initialCashBalance: 0,
-                initialOnlineBalance: 0
+                initialCashBalance: initialCash,
+                initialOnlineBalance: initialOnline
             });
             // Also create initial preferences
             await saveUserPreferences(user.uid, defaultPreferences);
@@ -114,6 +124,15 @@ export const createUserDocumentFromAuth = async (user: FirebaseUser) => {
 export const updateUserProfile = async (userId: string, data: Partial<User>) => {
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, data as any);
+};
+
+export const getUserProfile = async (userId: string): Promise<User | null> => {
+    const userDocRef = doc(db, 'users', userId);
+    const userSnapshot = await getDoc(userDocRef);
+    if (userSnapshot.exists()) {
+        return { uid: userId, ...userSnapshot.data() } as User;
+    }
+    return null;
 };
 
 // --- Firestore Data Operations ---
