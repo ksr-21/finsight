@@ -48,27 +48,22 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                 localStorage.setItem('finsight_user', JSON.stringify(user));
                 onAuthSuccess(user);
             } else {
-                const response = await fetch('/api/auth/signup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email,
-                        password,
-                        displayName: name,
-                        initialCashBalance: parseFloat(initialCash) || 0,
-                        initialOnlineBalance: parseFloat(initialOnline) || 0
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error);
+                const firebaseUser = await signUpWithEmail(
+                    email,
+                    password,
+                    name,
+                    parseFloat(initialCash) || 0,
+                    parseFloat(initialOnline) || 0
+                );
 
                 const user: User = {
-                    uid: data.user.uid,
-                    email: data.user.email,
-                    displayName: data.user.displayName,
-                    initialCashBalance: data.user.initialCashBalance,
-                    initialOnlineBalance: data.user.initialOnlineBalance
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    displayName: name,
+                    initialCashBalance: parseFloat(initialCash) || 0,
+                    initialOnlineBalance: parseFloat(initialOnline) || 0
                 };
+
                 localStorage.setItem('finsight_user', JSON.stringify(user));
                 onAuthSuccess(user);
             }
@@ -106,8 +101,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                         {!isLogin && (
                             <>
                                 <div>
-                                    <label className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Full Name</label>
+                                    <label htmlFor="fullName" className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Full Name</label>
                                     <input
+                                        id="fullName"
                                         type="text"
                                         value={name}
                                         onChange={e => setName(e.target.value)}
@@ -119,8 +115,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Initial Cash</label>
+                                        <label htmlFor="initialCash" className="block text-[10px] font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Initial Cash</label>
                                         <input
+                                            id="initialCash"
                                             type="number"
                                             value={initialCash}
                                             onChange={e => setInitialCash(e.target.value)}
@@ -129,8 +126,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Initial Online</label>
+                                        <label htmlFor="initialOnline" className="block text-[10px] font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Initial Online</label>
                                         <input
+                                            id="initialOnline"
                                             type="number"
                                             value={initialOnline}
                                             onChange={e => setInitialOnline(e.target.value)}
@@ -143,8 +141,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                         )}
 
                         <div>
-                            <label className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+                            <label htmlFor="emailAddress" className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Email Address</label>
                             <input 
+                                id="emailAddress"
                                 type="email" 
                                 value={email} 
                                 onChange={e => setEmail(e.target.value)} 
@@ -156,8 +155,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
+                            <label htmlFor="password" className="block text-xs font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
                             <input 
+                                id="password"
                                 type="password" 
                                 value={password} 
                                 onChange={e => setPassword(e.target.value)} 

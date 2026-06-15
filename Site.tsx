@@ -4,7 +4,7 @@ import App from './App';
 import LandingPage from './components/LandingPage';
 import Auth from './components/Auth';
 import { User } from './types';
-import { onAuthStateChangedListener, signOutUser } from './services/firestoreService';
+import { onAuthStateChangedListener, signOutUser, getUserProfile } from './services/firestoreService';
 
 const Site: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -28,12 +28,16 @@ const Site: React.FC = () => {
     }
 
     // 2. Listen for Firebase Auth changes
-    const unsubscribe = onAuthStateChangedListener((firebaseUser) => {
+    const unsubscribe = onAuthStateChangedListener(async (firebaseUser) => {
       if (firebaseUser) {
+        // Fetch full profile from Firestore to get initial balances
+        const profile = await getUserProfile(firebaseUser.uid);
         const user: User = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
+          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          initialCashBalance: profile?.initialCashBalance || 0,
+          initialOnlineBalance: profile?.initialOnlineBalance || 0
         };
         setCurrentUser(user);
         localStorage.setItem('finsight_user', JSON.stringify(user));
