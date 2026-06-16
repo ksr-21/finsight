@@ -37,6 +37,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   const balance = transactions.reduce((acc, t) => acc + (t.type === 'Income' ? t.amount : -t.amount), 0);
 
@@ -115,13 +116,17 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
   useEffect(() => {
     const handleOnline = async () => {
+      setIsOnline(true);
       if (user.uid !== 'guest_user') {
         await api.syncOfflineData(user.uid);
         await loadUserData(false, true);
       }
     };
 
+    const handleOffline = () => setIsOnline(false);
+
     window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     // Periodically check for offline items and try to sync if online
     const interval = setInterval(() => {
@@ -140,6 +145,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
     return () => {
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
       clearInterval(threeHourInterval);
     };
@@ -224,6 +230,21 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
 
 
       <ScrollToTop />
+
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 z-[110] bg-amber-500 text-white px-4 py-2 text-center text-sm font-bold flex items-center justify-center gap-2 shadow-lg"
+          >
+            <AlertCircleIcon className="w-4 h-4" />
+            <span>You are currently offline. Some features may be limited.</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {!isChatPage && (
         <Header
           user={convertedUser}
