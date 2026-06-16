@@ -80,7 +80,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ user, transactions, currency, balan
       setMessages(prev => [...prev, savedBotMsg]);
     } catch (error: any) {
       console.error("Chatbot Error:", error);
-      const errorMessage = "I'm sorry, I'm having trouble connecting right now.";
+      const errorMessage = error.message || "I'm sorry, I'm having trouble connecting right now.";
       const errorBotMsg: Omit<ChatMessage, 'id'> = {
         role: 'model',
         text: errorMessage,

@@ -23,7 +23,8 @@ const commonFetch = async (url: string, apiKey: string, body: any, providerName:
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(`${providerName} API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+    const message = errorData.error?.message || errorData.error || response.statusText || 'Unknown error';
+    throw new Error(`${providerName} API error: ${response.status} ${message}`);
   }
 
   const data = await response.json();
@@ -80,7 +81,8 @@ const callGemini = async (prompt: string, isJson = false) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Gemini API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+    const message = errorData.error?.message || errorData.error || response.statusText || 'Unknown error';
+    throw new Error(`Gemini API error: ${response.status} ${message}`);
   }
 
   const data = await response.json();
