@@ -34,37 +34,21 @@ export default defineConfig(({ mode }) => {
             display: 'standalone',
             orientation: 'portrait',
             display_override: ['window-controls-overlay', 'standalone'],
-            screenshots: [
-              {
-                src: 'icons/icon-512.png',
-                sizes: '512x512',
-                type: 'image/png',
-                form_factor: 'wide',
-                label: 'Finsight Dashboard - Campus Management'
-              },
-              {
-                src: 'icons/icon-512.png',
-                sizes: '512x512',
-                type: 'image/png',
-                form_factor: 'narrow',
-                label: 'Finsight Mobile - Student Life'
-              }
-            ],
             icons: [
               {
-                src: 'icons/icon-192.png',
+                src: '/icons/icon-192.png',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'icons/icon-512.png',
+                src: '/icons/icon-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'icons/maskable-512.png',
+                src: '/icons/maskable-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'maskable'
@@ -76,33 +60,36 @@ export default defineConfig(({ mode }) => {
                 short_name: 'Home',
                 description: 'Go to Home',
                 url: '/',
-                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+                icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               },
               {
                 name: 'Mess Menu',
                 short_name: 'Mess',
                 description: 'View today\'s mess menu',
                 url: '/mess',
-                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+                icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               },
               {
                 name: 'Food Orders',
                 short_name: 'Orders',
                 description: 'Manage your food orders',
                 url: '/orders',
-                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+                icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               },
               {
                 name: 'Events',
                 short_name: 'Events',
                 description: 'Check upcoming college events',
                 url: '/events',
-                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+                icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               }
             ]
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+            cleanupOutdatedCaches: true,
+            clientsClaim: true,
+            skipWaiting: true,
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
