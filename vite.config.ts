@@ -20,13 +20,13 @@ export default defineConfig(({ mode }) => {
           registerType: 'autoUpdate',
           includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png'],
           manifest: {
-            id: '/',
+            id: 'com.finsight.ai',
             name: 'FinSight AI',
             short_name: 'FinSight AI',
             description: 'Intelligent expense management and financial insights platform',
             lang: 'en',
-            categories: ['finance'],
-            start_url: './',
+            categories: ['finance', 'productivity'],
+            start_url: '/',
             scope: '/',
             theme_color: '#4F46E5',
             background_color: '#F3F4F6',
@@ -36,18 +36,36 @@ export default defineConfig(({ mode }) => {
               {
                 src: 'pwa-192x192.png',
                 sizes: '192x192',
-                type: 'image/png'
-              },
-              {
-                src: 'pwa-512x512.png',
-                sizes: '512x512',
-                type: 'image/png'
+                type: 'image/png',
+                purpose: 'any'
               },
               {
                 src: 'pwa-512x512.png',
                 sizes: '512x512',
                 type: 'image/png',
-                purpose: 'any maskable'
+                purpose: 'any'
+              },
+              {
+                src: 'pwa-512x512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable'
+              }
+            ],
+            shortcuts: [
+              {
+                name: 'Add Transaction',
+                short_name: 'Add',
+                description: 'Record a new expense or income',
+                url: '/transactions?add=true',
+                icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+              },
+              {
+                name: 'Insights',
+                short_name: 'Insights',
+                description: 'View financial analysis',
+                url: '/insights',
+                icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
               }
             ]
           },
