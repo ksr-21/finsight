@@ -19,14 +19,15 @@ export default defineConfig(({ mode }) => {
           },
           registerType: 'autoUpdate',
           manifestFilename: 'manifest.json',
-          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'icons/*.png'],
+          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'icons/*.png', 'screenshots/*.png'],
           manifest: {
             id: 'com.finsight.app',
-            name: 'Finsight',
-            short_name: 'Finsight',
-            description: 'A smart campus and student management platform that helps students access mess menus, order food, receive announcements, manage events, and connect with their college community.',
+            name: 'FinSight AI',
+            short_name: 'FinSight',
+            description: 'An intelligent expense management and financial insights platform that tracks income and expenses, analyzes spending patterns with AI, provides budget predictions, and offers personalized financial advice via an AI chatbot.',
             lang: 'en-US',
-            categories: ['education', 'food', 'productivity', 'social'],
+            dir: 'ltr',
+            categories: ['finance', 'productivity'],
             start_url: '/',
             scope: '/',
             theme_color: '#4F46E5',
@@ -54,36 +55,67 @@ export default defineConfig(({ mode }) => {
                 purpose: 'maskable'
               }
             ],
+            screenshots: [
+              {
+                src: '/screenshots/desktop-dashboard.png',
+                sizes: '1280x800',
+                type: 'image/png',
+                form_factor: 'wide',
+                label: 'FinSight AI Desktop Dashboard'
+              },
+              {
+                src: '/screenshots/desktop-transactions.png',
+                sizes: '1280x800',
+                type: 'image/png',
+                form_factor: 'wide',
+                label: 'FinSight AI Desktop Transactions'
+              },
+              {
+                src: '/screenshots/mobile-dashboard.png',
+                sizes: '390x844',
+                type: 'image/png',
+                form_factor: 'narrow',
+                label: 'FinSight AI Mobile Dashboard'
+              },
+              {
+                src: '/screenshots/mobile-transactions.png',
+                sizes: '390x844',
+                type: 'image/png',
+                form_factor: 'narrow',
+                label: 'FinSight AI Mobile Transactions'
+              }
+            ],
             shortcuts: [
               {
-                name: 'Home',
-                short_name: 'Home',
-                description: 'Go to Home',
-                url: '/',
+                name: 'Dashboard',
+                short_name: 'Dashboard',
+                description: 'View your financial summary',
+                url: '/#/dashboard',
                 icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               },
               {
-                name: 'Mess Menu',
-                short_name: 'Mess',
-                description: 'View today\'s mess menu',
-                url: '/mess',
+                name: 'Transactions',
+                short_name: 'Transactions',
+                description: 'View and add transactions',
+                url: '/#/transactions',
                 icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               },
               {
-                name: 'Food Orders',
-                short_name: 'Orders',
-                description: 'Manage your food orders',
-                url: '/orders',
-                icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
-              },
-              {
-                name: 'Events',
-                short_name: 'Events',
-                description: 'Check upcoming college events',
-                url: '/events',
+                name: 'AI Chat',
+                short_name: 'AI Chat',
+                description: 'Talk to your financial assistant',
+                url: '/#/chat',
                 icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               }
-            ]
+            ],
+            related_applications: [
+              {
+                platform: 'play',
+                url: 'https://play.google.com/store/apps/details?id=com.finsight.app',
+                id: 'com.finsight.app'
+              }
+            ],
+            prefer_related_applications: false
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
