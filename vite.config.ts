@@ -90,21 +90,21 @@ export default defineConfig(({ mode }) => {
                 name: 'Dashboard',
                 short_name: 'Dashboard',
                 description: 'View your financial summary',
-                url: '/#/dashboard',
+                url: '/dashboard',
                 icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               },
               {
                 name: 'Transactions',
                 short_name: 'Transactions',
                 description: 'View and add transactions',
-                url: '/#/transactions',
+                url: '/transactions',
                 icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               },
               {
                 name: 'AI Chat',
                 short_name: 'AI Chat',
                 description: 'Talk to your financial assistant',
-                url: '/#/chat',
+                url: '/chat',
                 icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }]
               }
             ],
@@ -122,6 +122,8 @@ export default defineConfig(({ mode }) => {
             cleanupOutdatedCaches: true,
             clientsClaim: true,
             skipWaiting: true,
+            navigateFallback: 'index.html',
+            navigateFallbackDenylist: [/^\/api/],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
