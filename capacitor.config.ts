@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.finsight.ai',
-  appName: 'FinSight AI',
+  appId: 'com.finsight.app',
+  appName: 'Finsight',
   webDir: 'dist'
 };
 
