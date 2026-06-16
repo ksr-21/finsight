@@ -14,7 +14,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp }) => {
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <img src="/assets/logo.png" alt="FinSight AI Logo" className="h-8 w-8 object-contain" />
+              <img src="/assets/logo.png" alt="FinSight AI Logo" className="h-12 w-12 object-contain" />
               <span className="ml-3 text-2xl font-bold">FinSight AI</span>
             </div>
             <div className="flex items-center">
