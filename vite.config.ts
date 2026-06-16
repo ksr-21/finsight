@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      base: './',
+      base: '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -18,7 +18,8 @@ export default defineConfig(({ mode }) => {
             enabled: true
           },
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png'],
+          manifestFilename: 'manifest.json',
+          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'pwa-192x192.png', 'pwa-512x512.png'],
           manifest: {
             id: 'com.finsight.ai',
             name: 'FinSight AI',
@@ -32,6 +33,23 @@ export default defineConfig(({ mode }) => {
             background_color: '#F3F4F6',
             display: 'standalone',
             orientation: 'portrait',
+            display_override: ['window-controls-overlay', 'standalone'],
+            screenshots: [
+              {
+                src: 'pwa-512x512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                form_factor: 'wide',
+                label: 'FinSight AI Dashboard'
+              },
+              {
+                src: 'pwa-512x512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                form_factor: 'narrow',
+                label: 'FinSight AI Mobile'
+              }
+            ],
             icons: [
               {
                 src: 'pwa-192x192.png',
