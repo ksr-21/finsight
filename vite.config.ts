@@ -19,52 +19,52 @@ export default defineConfig(({ mode }) => {
           },
           registerType: 'autoUpdate',
           manifestFilename: 'manifest.json',
-          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'icons/*.png'],
           manifest: {
-            id: 'com.finsight.ai',
-            name: 'FinSight AI',
-            short_name: 'FinSight AI',
-            description: 'Intelligent expense management and financial insights platform',
-            lang: 'en',
-            categories: ['finance', 'productivity'],
+            id: 'com.finsight.app',
+            name: 'Finsight',
+            short_name: 'Finsight',
+            description: 'A smart campus and student management platform that helps students access mess menus, order food, receive announcements, manage events, and connect with their college community.',
+            lang: 'en-US',
+            categories: ['education', 'food', 'productivity', 'social'],
             start_url: '/',
             scope: '/',
             theme_color: '#4F46E5',
-            background_color: '#F3F4F6',
+            background_color: '#ffffff',
             display: 'standalone',
             orientation: 'portrait',
             display_override: ['window-controls-overlay', 'standalone'],
             screenshots: [
               {
-                src: 'pwa-512x512.png',
+                src: 'icons/icon-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 form_factor: 'wide',
-                label: 'FinSight AI Dashboard'
+                label: 'Finsight Dashboard - Campus Management'
               },
               {
-                src: 'pwa-512x512.png',
+                src: 'icons/icon-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 form_factor: 'narrow',
-                label: 'FinSight AI Mobile'
+                label: 'Finsight Mobile - Student Life'
               }
             ],
             icons: [
               {
-                src: 'pwa-192x192.png',
+                src: 'icons/icon-192.png',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'pwa-512x512.png',
+                src: 'icons/icon-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'pwa-512x512.png',
+                src: 'icons/maskable-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'maskable'
@@ -72,18 +72,32 @@ export default defineConfig(({ mode }) => {
             ],
             shortcuts: [
               {
-                name: 'Add Transaction',
-                short_name: 'Add',
-                description: 'Record a new expense or income',
-                url: '/transactions?add=true',
-                icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+                name: 'Home',
+                short_name: 'Home',
+                description: 'Go to Home',
+                url: '/',
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
               },
               {
-                name: 'Insights',
-                short_name: 'Insights',
-                description: 'View financial analysis',
-                url: '/insights',
-                icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+                name: 'Mess Menu',
+                short_name: 'Mess',
+                description: 'View today\'s mess menu',
+                url: '/mess',
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+              },
+              {
+                name: 'Food Orders',
+                short_name: 'Orders',
+                description: 'Manage your food orders',
+                url: '/orders',
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+              },
+              {
+                name: 'Events',
+                short_name: 'Events',
+                description: 'Check upcoming college events',
+                url: '/events',
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
               }
             ]
           },
