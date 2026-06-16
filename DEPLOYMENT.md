@@ -1,6 +1,6 @@
 # Vercel Deployment Guide
 
-To deploy FinSight AI to Vercel with a MongoDB backend, follow these steps:
+To deploy Finsight to Vercel with a MongoDB backend, follow these steps:
 
 ## 1. MongoDB Setup
 1. Create a MongoDB Atlas account at [mongodb.com](https://www.mongodb.com/cloud/atlas).
@@ -24,7 +24,7 @@ Add the following variables in the Vercel Dashboard (Settings > Environment Vari
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
 2. Select your project (`success-squad-eureka`).
 3. Navigate to **Authentication** > **Settings** > **Authorized domains**.
-4. Click **Add domain** and enter your production domain (e.g., `finsight-weld-psi.vercel.app`).
+4. Click **Add domain** and enter your production domain (e.g., `finsight-app.vercel.app`).
 5. This is required to prevent console errors and enable OAuth features.
 
 ## 5. Deployment

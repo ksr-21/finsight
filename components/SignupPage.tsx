@@ -39,7 +39,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onBack }) => {
           Create your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          Join FinSight AI and master your money
+          Join Finsight and master your money
         </p>
       </div>
 

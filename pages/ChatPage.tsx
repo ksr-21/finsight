@@ -28,7 +28,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ user, transactions, currency, balan
         if (history.length === 0) {
           const welcomeMsg: Omit<ChatMessage, 'id'> = {
             role: 'model',
-            text: 'Hello! I am FinSight AI. How can I help you with your finances today?',
+            text: 'Hello! I am Finsight. How can I help you with your finances today?',
             timestamp: new Date().toISOString()
           };
           const saved = await api.addChatMessage(user.uid, welcomeMsg);
@@ -135,7 +135,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ user, transactions, currency, balan
           <SparklesIcon className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold leading-tight">FinSight AI</h3>
+          <h3 className="font-bold leading-tight">Finsight</h3>
           <p className="text-[10px] opacity-80 uppercase tracking-tighter">Online assistant</p>
         </div>
       </div>

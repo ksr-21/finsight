@@ -1,6 +1,6 @@
 # Dashboard Metrics Explanation
 
-FinSight AI provides several advanced financial metrics on the dashboard to help you understand your financial health.
+Finsight provides several advanced financial metrics on the dashboard to help you understand your financial health.
 
 ## 1. Net Worth
 **Calculation:** `Cash Balance + Portfolio Value`

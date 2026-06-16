@@ -14,8 +14,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp }) => {
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <img src="/assets/logo.png" alt="FinSight AI Logo" className="h-12 w-12 object-contain" />
-              <span className="ml-3 text-2xl font-bold">FinSight AI</span>
+              <img src="/assets/logo.png" alt="Finsight Logo" className="h-12 w-12 object-contain" />
+              <span className="ml-3 text-2xl font-bold">Finsight</span>
             </div>
             <div className="flex items-center">
               <button
@@ -37,7 +37,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp }) => {
               Meet Your Personal <span className="text-primary">AI Financial Advisor</span>
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-text-secondary dark:text-gray-300 max-w-2xl mx-auto">
-              Go beyond simple expense tracking. FinSight AI analyzes your spending, provides intelligent insights, and helps you achieve your financial goals faster.
+              Go beyond simple expense tracking. Finsight analyzes your spending, provides intelligent insights, and helps you achieve your financial goals faster.
             </p>
             <div className="mt-8">
               <button
@@ -98,7 +98,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp }) => {
       {/* Footer */}
       <footer className="bg-background dark:bg-gray-900">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm text-text-secondary dark:text-gray-400">
-          <p>&copy; {new Date().getFullYear()} FinSight AI. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Finsight. All rights reserved.</p>
         </div>
       </footer>
     </div>

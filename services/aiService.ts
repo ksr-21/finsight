@@ -15,7 +15,7 @@ const commonFetch = async (url: string, apiKey: string, body: any, providerName:
       "Content-Type": "application/json",
       ...(providerName === 'OpenRouter' ? {
         "HTTP-Referer": window.location.origin,
-        "X-Title": "FinSight AI",
+        "X-Title": "Finsight",
       } : {})
     },
     body: JSON.stringify(body),
@@ -147,7 +147,7 @@ export const aiService = {
   // Chatbot response
   getChatResponse: async (message: string, context: { transactions: Transaction[], balance: number }): Promise<string> => {
     const platformContext = `
-    Platform Features (FinSight AI):
+    Platform Features (Finsight):
     - Net Worth: Calculated as Cash Balance (Income - Expenses) + Portfolio Value.
     - Survival Runway (Stress Test): Days you can survive without income. Calculation: Current Liquidity / Monthly Burn Rate.
     - Financial Health Score: Weighted average of Savings, Spending, Investment, and Emergency Fund scores.
@@ -156,7 +156,7 @@ export const aiService = {
     - Smart Budgets: Category-based spending limits.
     `;
 
-    const prompt = `You are FinSight AI, a professional and friendly financial assistant chatbot.
+    const prompt = `You are Finsight, a professional and friendly financial assistant chatbot.
 
     ${platformContext}
     

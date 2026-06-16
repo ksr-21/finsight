@@ -14,7 +14,7 @@ interface AiChatbotProps {
 const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
-    { role: 'bot', text: 'Hello! I am FinSight AI. How can I help you with your finances today?' }
+    { role: 'bot', text: 'Hello! I am Finsight. How can I help you with your finances today?' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -72,7 +72,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
                   <SparklesIcon className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold">FinSight AI</h3>
+                  <h3 className="font-bold">Finsight</h3>
                   <p className="text-[10px] font-mono uppercase tracking-widest opacity-70">Always Online</p>
                 </div>
               </div>
@@ -153,7 +153,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
           }
         }}
         className="group relative flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-2xl shadow-indigo-500/40 md:h-16 md:w-16 md:rounded-[1.5rem]"
-        aria-label={isOpen ? 'Close FinSight AI chat' : 'Open FinSight AI chat'}
+        aria-label={isOpen ? 'Close Finsight chat' : 'Open Finsight chat'}
       >
         {isOpen ? (
           <XMarkIcon className="h-7 w-7" />

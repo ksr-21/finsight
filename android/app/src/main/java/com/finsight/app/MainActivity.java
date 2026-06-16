@@ -1,4 +1,4 @@
-package com.finsight.ai;
+package com.finsight.app;
 
 import com.getcapacitor.BridgeActivity;
 

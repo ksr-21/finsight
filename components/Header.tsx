@@ -59,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
                 <img src="/assets/logo.png" alt="Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
               </div>
               <h1 className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-text-primary dark:text-white tracking-tight hidden lg:block">
-                FinSight<span className="text-indigo-600">.</span>
+                Finsight<span className="text-indigo-600">.</span>
               </h1>
             </NavLink>
             

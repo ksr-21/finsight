@@ -48,7 +48,7 @@ const AiSummary: React.FC<AiSummaryProps> = ({ transactions, budgets }) => {
               <SparklesIcon className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">FinSight Intelligence</h2>
+              <h2 className="text-3xl font-bold tracking-tight">Finsight Intelligence</h2>
               <p className="text-xs font-mono uppercase tracking-[0.3em] opacity-60 mt-1">Neural Financial Analysis</p>
             </div>
           </div>

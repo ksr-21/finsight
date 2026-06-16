@@ -19,52 +19,63 @@ export default defineConfig(({ mode }) => {
           },
           registerType: 'autoUpdate',
           manifestFilename: 'manifest.json',
-          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+          includeAssets: [
+            'assets/logo.png',
+            'icons/icon-192.png',
+            'icons/icon-512.png',
+            'icons/maskable-512.png'
+          ],
           manifest: {
-            id: 'com.finsight.ai',
-            name: 'FinSight AI',
-            short_name: 'FinSight AI',
-            description: 'Intelligent expense management and financial insights platform',
-            lang: 'en',
+            id: 'com.finsight.app',
+            name: 'Finsight',
+            short_name: 'Finsight',
+            description: 'A smart expense tracking and financial management platform that provides intelligent insights and helps you achieve your financial goals.',
+            lang: 'en-US',
             categories: ['finance', 'productivity'],
             start_url: '/',
             scope: '/',
             theme_color: '#4F46E5',
-            background_color: '#F3F4F6',
+            background_color: '#ffffff',
             display: 'standalone',
             orientation: 'portrait',
             display_override: ['window-controls-overlay', 'standalone'],
             screenshots: [
               {
-                src: 'pwa-512x512.png',
-                sizes: '512x512',
+                src: 'assets/logo.png',
+                sizes: '1024x1024',
                 type: 'image/png',
                 form_factor: 'wide',
-                label: 'FinSight AI Dashboard'
+                label: 'Finsight Dashboard'
               },
               {
-                src: 'pwa-512x512.png',
-                sizes: '512x512',
+                src: 'assets/logo.png',
+                sizes: '1024x1024',
                 type: 'image/png',
                 form_factor: 'narrow',
-                label: 'FinSight AI Mobile'
+                label: 'Finsight Mobile'
               }
             ],
             icons: [
               {
-                src: 'pwa-192x192.png',
+                src: 'assets/logo.png',
+                sizes: '1024x1024',
+                type: 'image/png',
+                purpose: 'any'
+              },
+              {
+                src: 'icons/icon-192.png',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'pwa-512x512.png',
+                src: 'icons/icon-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'pwa-512x512.png',
+                src: 'icons/maskable-512.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'maskable'
@@ -72,18 +83,32 @@ export default defineConfig(({ mode }) => {
             ],
             shortcuts: [
               {
-                name: 'Add Transaction',
-                short_name: 'Add',
-                description: 'Record a new expense or income',
-                url: '/transactions?add=true',
-                icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+                name: 'Dashboard',
+                short_name: 'Dashboard',
+                description: 'Go to Dashboard',
+                url: '/',
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+              },
+              {
+                name: 'Transactions',
+                short_name: 'Trans',
+                description: 'View Transactions',
+                url: '/transactions',
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
               },
               {
                 name: 'Insights',
                 short_name: 'Insights',
-                description: 'View financial analysis',
+                description: 'View Financial Insights',
                 url: '/insights',
-                icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
+              },
+              {
+                name: 'Budgets',
+                short_name: 'Budgets',
+                description: 'Manage Budgets',
+                url: '/budgets',
+                icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }]
               }
             ]
           },

@@ -89,7 +89,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                         <img src="/assets/logo.png" alt="Logo" className="h-6 w-6 object-contain" />
                     </div>
                     <h1 className="ml-3 text-3xl font-bold text-text-primary dark:text-white">
-                        FinSight<span className="text-indigo-600">.</span>
+                        Finsight<span className="text-indigo-600">.</span>
                     </h1>
                 </div>
                 <div className="bg-white dark:bg-gray-800 shadow-xl rounded-[2rem] p-8 border border-gray-100 dark:border-gray-700">
