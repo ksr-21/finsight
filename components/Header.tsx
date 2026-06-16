@@ -55,8 +55,8 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
         <div className="flex items-center justify-between h-16 sm:h-20">
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-8">
             <NavLink to="/" className="flex items-center group shrink-0">
-              <div className="w-8 sm:w-10 h-8 sm:h-10 bg-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
-                <img src="/assets/logo.png" alt="Logo" className="h-5 sm:h-6 w-5 sm:w-6 object-contain" />
+              <div className="w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <img src="/assets/logo.png" alt="Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
               </div>
               <h1 className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-text-primary dark:text-white tracking-tight hidden lg:block">
                 FinSight<span className="text-indigo-600">.</span>
