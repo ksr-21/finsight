@@ -8,12 +8,14 @@ import { registerSW } from 'virtual:pwa-register';
 if ('serviceWorker' in navigator) {
   registerSW({
     onNeedRefresh() {
-      if (confirm('New content available. Reload?')) {
+      // Using a simple confirm is standard for now,
+      // but 'autoUpdate' in vite.config.ts handles the actual update.
+      if (confirm('New version available! Refresh to update?')) {
         window.location.reload();
       }
     },
     onOfflineReady() {
-      console.log('App ready to work offline');
+      console.log('App is ready for offline use.');
     },
   });
 }

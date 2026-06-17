@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import App from './App';
 import LandingPage from './components/LandingPage';
 import Auth from './components/Auth';
@@ -87,9 +87,9 @@ const Site: React.FC = () => {
 
   if (currentUser) {
     return (
-      <BrowserRouter>
+      <HashRouter>
         <App user={currentUser} onLogout={handleLogout} />
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 

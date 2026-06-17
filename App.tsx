@@ -38,6 +38,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [showUpdateToast, setShowUpdateToast] = useState<boolean>(false);
 
   const balance = transactions.reduce((acc, t) => acc + (t.type === 'Income' ? t.amount : -t.amount), 0);
 
