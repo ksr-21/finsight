@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => {
           devOptions: {
             enabled: true
           },
-          registerType: 'autoUpdate',
+          registerType: 'prompt',
           manifestFilename: 'manifest.json',
-          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'icons/*.png', 'screenshots/*.png', 'offline.html'],
+          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.svg', 'assets/logo.png', 'icons/*.png', 'offline.html'],
           manifest: {
             id: 'com.finsight.app',
             name: 'FinSight AI',
@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
             lang: 'en-US',
             dir: 'ltr',
             categories: ['finance', 'productivity'],
-            start_url: './',
-            scope: './',
+            start_url: '/',
+            scope: '/',
             theme_color: '#4F46E5',
             background_color: '#ffffff',
             display: 'standalone',
@@ -119,11 +119,13 @@ export default defineConfig(({ mode }) => {
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+            globIgnores: ['screenshots/*.png'],
             cleanupOutdatedCaches: true,
             clientsClaim: true,
             skipWaiting: true,
             navigateFallback: 'index.html',
             navigateFallbackDenylist: [/^\/api/],
+            maximumFileSizeToCacheInBytes: 5000000,
             offlineGoogleAnalytics: true,
             runtimeCaching: [
               {
@@ -165,6 +167,19 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
+        }
+      },
+      build: {
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+              'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+              'vendor-charts': ['recharts'],
+              'vendor-motion': ['motion/react'],
+            }
+          }
         }
       }
     };

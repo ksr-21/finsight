@@ -30,17 +30,46 @@ const Site: React.FC = () => {
     // 2. Listen for Firebase Auth changes
     const unsubscribe = onAuthStateChangedListener(async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch full profile from Firestore to get initial balances
-        const profile = await getUserProfile(firebaseUser.uid);
-        const user: User = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-          initialCashBalance: profile?.initialCashBalance || 0,
-          initialOnlineBalance: profile?.initialOnlineBalance || 0
-        };
-        setCurrentUser(user);
-        localStorage.setItem('finsight_user', JSON.stringify(user));
+        try {
+          // Fetch full profile from Firestore to get initial balances
+          const profile = await getUserProfile(firebaseUser.uid);
+          const user: User = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            initialCashBalance: profile?.initialCashBalance || 0,
+            initialOnlineBalance: profile?.initialOnlineBalance || 0
+          };
+          setCurrentUser(user);
+          localStorage.setItem('finsight_user', JSON.stringify(user));
+        } catch (error) {
+          console.warn("Failed to fetch user profile, using basic info", error);
+          // Still set user with basic info if profile fetch fails (e.g. offline)
+          const user: User = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            initialCashBalance: 0,
+            initialOnlineBalance: 0
+          };
+
+          // Check if we have a better version in localStorage
+          const saved = localStorage.getItem('finsight_user');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed.uid === firebaseUser.uid) {
+                setCurrentUser(parsed);
+              } else {
+                setCurrentUser(user);
+              }
+            } catch {
+              setCurrentUser(user);
+            }
+          } else {
+            setCurrentUser(user);
+          }
+        }
       } else {
         // Only clear if not guest
         const currentSaved = localStorage.getItem('finsight_user');
