@@ -36,6 +36,11 @@ const setLocal = (userId: string, key: string, data: any) => {
   }
 };
 
+const addToOfflineQueue = (userId: string, type: string, data: any, id?: string) => {
+  const queue = getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE);
+  setLocal(userId, STORAGE_KEYS.OFFLINE_QUEUE, [...queue, { type, data, id, timestamp: Date.now() }]);
+};
+
 export const api = {
   // Transactions
   getTransactions: async (userId: string, forceRefresh: boolean = true): Promise<Transaction[]> => {
@@ -64,20 +69,21 @@ export const api = {
     } else {
       try {
         result = await firestore.addTransactionForUser(userId, t);
+        // Refresh local cache after successful write
+        const trans = await firestore.getTransactionsForUser(userId);
+        setLocal(userId, STORAGE_KEYS.TRANSACTIONS, trans);
       } catch (e) {
         result = { ...t, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as Transaction;
         const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
         setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, result]);
 
         // Add to offline queue
-        const queue = getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE);
-        setLocal(userId, STORAGE_KEYS.OFFLINE_QUEUE, [...queue, { type: 'ADD_TRANSACTION', data: t }]);
+        addToOfflineQueue(userId, 'ADD_TRANSACTION', t);
       }
     }
 
     // Auto-create Debt entry for split bills
     if (t.isSplit && t.splitWith && t.splitWith.length > 0) {
-      // t.amount is already in base currency (USD)
       const splitAmount = t.amount / (t.splitCount || 2);
       for (const person of t.splitWith) {
         if (person.trim()) {
@@ -112,6 +118,7 @@ export const api = {
       const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
       const updated = current.map(item => item.id === id ? { ...item, ...t } : item);
       setLocal(userId, STORAGE_KEYS.TRANSACTIONS, updated);
+      addToOfflineQueue(userId, 'UPDATE_TRANSACTION', t, id);
       return updated.find(item => item.id === id) as Transaction;
     }
   },
@@ -127,6 +134,7 @@ export const api = {
     } catch (e) {
       const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
       setLocal(userId, STORAGE_KEYS.TRANSACTIONS, current.filter(item => item.id !== id));
+      addToOfflineQueue(userId, 'DELETE_TRANSACTION', null, id);
     }
   },
 
@@ -221,7 +229,9 @@ export const api = {
       return getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
     }
     try {
-      return await firestore.getBudgetsForUser(userId);
+      const budgets = await firestore.getBudgetsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, budgets);
+      return budgets;
     } catch (e) {
       return getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
     }
@@ -235,11 +245,15 @@ export const api = {
       return newBudget;
     }
     try {
-      return await firestore.addBudgetForUser(userId, b);
+      const result = await firestore.addBudgetForUser(userId, b);
+      const budgets = await firestore.getBudgetsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, budgets);
+      return result;
     } catch (e) {
-      const newBudget = { ...b, id: Math.random().toString(36).substr(2, 9) } as Budget;
+      const newBudget = { ...b, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as Budget;
       const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
       setLocal(userId, STORAGE_KEYS.BUDGETS, [...current, newBudget]);
+      addToOfflineQueue(userId, 'ADD_BUDGET', b);
       return newBudget;
     }
   },
@@ -258,6 +272,7 @@ export const api = {
       const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
       const updated = current.map(item => item.id === id ? { ...item, ...b } : item);
       setLocal(userId, STORAGE_KEYS.BUDGETS, updated);
+      addToOfflineQueue(userId, 'UPDATE_BUDGET', b, id);
       return updated.find(item => item.id === id) as Budget;
     }
   },
@@ -273,6 +288,7 @@ export const api = {
     } catch (e) {
       const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
       setLocal(userId, STORAGE_KEYS.BUDGETS, current.filter(item => item.id !== id));
+      addToOfflineQueue(userId, 'DELETE_BUDGET', null, id);
     }
   },
 
@@ -282,7 +298,9 @@ export const api = {
       return getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
     }
     try {
-      return await firestore.getGoalsForUser(userId);
+      const goals = await firestore.getGoalsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.GOALS, goals);
+      return goals;
     } catch (e) {
       return getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
     }
@@ -296,11 +314,15 @@ export const api = {
       return newGoal;
     }
     try {
-      return await firestore.addGoalForUser(userId, g);
+      const result = await firestore.addGoalForUser(userId, g);
+      const goals = await firestore.getGoalsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.GOALS, goals);
+      return result;
     } catch (e) {
-      const newGoal = { ...g, id: Math.random().toString(36).substr(2, 9) } as Goal;
+      const newGoal = { ...g, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as Goal;
       const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
       setLocal(userId, STORAGE_KEYS.GOALS, [...current, newGoal]);
+      addToOfflineQueue(userId, 'ADD_GOAL', g);
       return newGoal;
     }
   },
@@ -319,6 +341,7 @@ export const api = {
       const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
       const updated = current.map(item => item.id === id ? { ...item, ...g } : item);
       setLocal(userId, STORAGE_KEYS.GOALS, updated);
+      addToOfflineQueue(userId, 'UPDATE_GOAL', g, id);
       return updated.find(item => item.id === id) as Goal;
     }
   },
@@ -334,6 +357,7 @@ export const api = {
     } catch (e) {
       const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
       setLocal(userId, STORAGE_KEYS.GOALS, current.filter(item => item.id !== id));
+      addToOfflineQueue(userId, 'DELETE_GOAL', null, id);
     }
   },
 
@@ -343,7 +367,9 @@ export const api = {
       return getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
     }
     try {
-      return await firestore.getBillsForUser(userId);
+      const bills = await firestore.getBillsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.BILLS, bills);
+      return bills;
     } catch (e) {
       return getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
     }
@@ -356,7 +382,18 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.BILLS, [...current, newBill]);
       return newBill;
     }
-    return await firestore.addBillForUser(userId, bill);
+    try {
+      const result = await firestore.addBillForUser(userId, bill);
+      const bills = await firestore.getBillsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.BILLS, bills);
+      return result;
+    } catch (e) {
+      const newBill = { ...bill, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as Bill;
+      const current = getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+      setLocal(userId, STORAGE_KEYS.BILLS, [...current, newBill]);
+      addToOfflineQueue(userId, 'ADD_BILL', bill);
+      return newBill;
+    }
   },
 
   updateBill: async (userId: string, id: string, bill: Partial<Bill>): Promise<void> => {
@@ -366,7 +403,14 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.BILLS, updated);
       return;
     }
-    await firestore.updateBillForUser(userId, id, bill);
+    try {
+      await firestore.updateBillForUser(userId, id, bill);
+    } catch (e) {
+      const current = getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+      const updated = current.map(item => item.id === id ? { ...item, ...bill } : item);
+      setLocal(userId, STORAGE_KEYS.BILLS, updated);
+      addToOfflineQueue(userId, 'UPDATE_BILL', bill, id);
+    }
   },
 
   deleteBill: async (userId: string, id: string): Promise<void> => {
@@ -375,7 +419,13 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.BILLS, current.filter(item => item.id !== id));
       return;
     }
-    await firestore.deleteBillForUser(userId, id);
+    try {
+      await firestore.deleteBillForUser(userId, id);
+    } catch (e) {
+      const current = getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+      setLocal(userId, STORAGE_KEYS.BILLS, current.filter(item => item.id !== id));
+      addToOfflineQueue(userId, 'DELETE_BILL', null, id);
+    }
   },
 
   // Portfolio
@@ -384,7 +434,9 @@ export const api = {
       return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
     }
     try {
-      return await firestore.getPortfolioForUser(userId);
+      const assets = await firestore.getPortfolioForUser(userId);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, assets);
+      return assets;
     } catch (e) {
       return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
     }
@@ -397,7 +449,18 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.PORTFOLIO, [...current, newAsset]);
       return newAsset;
     }
-    return await firestore.addPortfolioAssetForUser(userId, asset);
+    try {
+      const result = await firestore.addPortfolioAssetForUser(userId, asset);
+      const assets = await firestore.getPortfolioForUser(userId);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, assets);
+      return result;
+    } catch (e) {
+      const newAsset = { ...asset, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as PortfolioAsset;
+      const current = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, [...current, newAsset]);
+      addToOfflineQueue(userId, 'ADD_PORTFOLIO', asset);
+      return newAsset;
+    }
   },
 
   updatePortfolioAsset: async (userId: string, id: string, asset: Partial<PortfolioAsset>): Promise<void> => {
@@ -407,7 +470,14 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.PORTFOLIO, updated);
       return;
     }
-    await firestore.updatePortfolioAssetForUser(userId, id, asset);
+    try {
+      await firestore.updatePortfolioAssetForUser(userId, id, asset);
+    } catch (e) {
+      const current = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+      const updated = current.map(item => item.id === id ? { ...item, ...asset } : item);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, updated);
+      addToOfflineQueue(userId, 'UPDATE_PORTFOLIO', asset, id);
+    }
   },
 
   deletePortfolioAsset: async (userId: string, id: string): Promise<void> => {
@@ -416,7 +486,13 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.PORTFOLIO, current.filter(item => item.id !== id));
       return;
     }
-    await firestore.deletePortfolioAssetForUser(userId, id);
+    try {
+      await firestore.deletePortfolioAssetForUser(userId, id);
+    } catch (e) {
+      const current = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+      setLocal(userId, STORAGE_KEYS.PORTFOLIO, current.filter(item => item.id !== id));
+      addToOfflineQueue(userId, 'DELETE_PORTFOLIO', null, id);
+    }
   },
 
   // Debts
@@ -425,7 +501,9 @@ export const api = {
       return getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
     }
     try {
-      return await firestore.getDebtsForUser(userId);
+      const debts = await firestore.getDebtsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.DEBTS, debts);
+      return debts;
     } catch (e) {
       return getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
     }
@@ -438,7 +516,18 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.DEBTS, [...current, newDebt]);
       return newDebt;
     }
-    return await firestore.addDebtForUser(userId, debt);
+    try {
+      const result = await firestore.addDebtForUser(userId, debt);
+      const debts = await firestore.getDebtsForUser(userId);
+      setLocal(userId, STORAGE_KEYS.DEBTS, debts);
+      return result;
+    } catch (e) {
+      const newDebt = { ...debt, id: 'offline_' + Math.random().toString(36).substr(2, 9) } as Debt;
+      const current = getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+      setLocal(userId, STORAGE_KEYS.DEBTS, [...current, newDebt]);
+      addToOfflineQueue(userId, 'ADD_DEBT', debt);
+      return newDebt;
+    }
   },
 
   updateDebt: async (userId: string, id: string, debt: Partial<Debt>): Promise<void> => {
@@ -448,7 +537,14 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.DEBTS, updated);
       return;
     }
-    await firestore.updateDebtForUser(userId, id, debt);
+    try {
+      await firestore.updateDebtForUser(userId, id, debt);
+    } catch (e) {
+      const current = getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+      const updated = current.map(item => item.id === id ? { ...item, ...debt } : item);
+      setLocal(userId, STORAGE_KEYS.DEBTS, updated);
+      addToOfflineQueue(userId, 'UPDATE_DEBT', debt, id);
+    }
   },
 
   deleteDebt: async (userId: string, id: string): Promise<void> => {
@@ -457,7 +553,13 @@ export const api = {
       setLocal(userId, STORAGE_KEYS.DEBTS, current.filter(item => item.id !== id));
       return;
     }
-    await firestore.deleteDebtForUser(userId, id);
+    try {
+      await firestore.deleteDebtForUser(userId, id);
+    } catch (e) {
+      const current = getLocal<Debt>(userId, STORAGE_KEYS.DEBTS);
+      setLocal(userId, STORAGE_KEYS.DEBTS, current.filter(item => item.id !== id));
+      addToOfflineQueue(userId, 'DELETE_DEBT', null, id);
+    }
   },
 
   updateUser: async (userId: string, data: Partial<User>): Promise<void> => {
@@ -467,7 +569,11 @@ export const api = {
       localStorage.setItem('finsight_user', JSON.stringify(updated));
       return;
     }
-    await firestore.updateUserProfile(userId, data);
+    try {
+      await firestore.updateUserProfile(userId, data);
+    } catch (e) {
+      addToOfflineQueue(userId, 'UPDATE_USER', data);
+    }
   },
 
   getChatMessages: async (userId: string): Promise<ChatMessage[]> => {
@@ -475,7 +581,9 @@ export const api = {
       return getLocal<ChatMessage>(userId, 'chat_messages');
     }
     try {
-      return await firestore.getChatMessagesForUser(userId);
+      const msgs = await firestore.getChatMessagesForUser(userId);
+      setLocal(userId, 'chat_messages', msgs);
+      return msgs;
     } catch (e) {
       return getLocal<ChatMessage>(userId, 'chat_messages');
     }
@@ -496,8 +604,7 @@ export const api = {
       setLocal(userId, 'chat_messages', [...current, newMessage]);
 
       // Add to offline queue
-      const queue = getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE);
-      setLocal(userId, STORAGE_KEYS.OFFLINE_QUEUE, [...queue, { type: 'ADD_CHAT_MESSAGE', data: message }]);
+      addToOfflineQueue(userId, 'ADD_CHAT_MESSAGE', message);
 
       return newMessage;
     }
@@ -509,14 +616,73 @@ export const api = {
     const queue = getLocal<any>(userId, STORAGE_KEYS.OFFLINE_QUEUE);
     if (queue.length === 0) return;
 
+    // Sort queue by timestamp to ensure chronological sync
+    const sortedQueue = [...queue].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     const remainingQueue: any[] = [];
 
-    for (const item of queue) {
+    for (const item of sortedQueue) {
       try {
-        if (item.type === 'ADD_TRANSACTION') {
-          await firestore.addTransactionForUser(userId, item.data);
-        } else if (item.type === 'ADD_CHAT_MESSAGE') {
-          await firestore.addChatMessageForUser(userId, item.data);
+        switch (item.type) {
+          case 'ADD_TRANSACTION':
+            await firestore.addTransactionForUser(userId, item.data);
+            break;
+          case 'UPDATE_TRANSACTION':
+            await firestore.updateTransactionForUser(userId, item.id, item.data);
+            break;
+          case 'DELETE_TRANSACTION':
+            await firestore.deleteTransactionForUser(userId, item.id);
+            break;
+          case 'ADD_BUDGET':
+            await firestore.addBudgetForUser(userId, item.data);
+            break;
+          case 'UPDATE_BUDGET':
+            await firestore.updateBudgetForUser(userId, item.id, item.data);
+            break;
+          case 'DELETE_BUDGET':
+            await firestore.deleteBudgetForUser(userId, item.id);
+            break;
+          case 'ADD_GOAL':
+            await firestore.addGoalForUser(userId, item.data);
+            break;
+          case 'UPDATE_GOAL':
+            await firestore.updateGoalForUser(userId, item.id, item.data);
+            break;
+          case 'DELETE_GOAL':
+            await firestore.deleteGoalForUser(userId, item.id);
+            break;
+          case 'ADD_BILL':
+            await firestore.addBillForUser(userId, item.data);
+            break;
+          case 'UPDATE_BILL':
+            await firestore.updateBillForUser(userId, item.id, item.data);
+            break;
+          case 'DELETE_BILL':
+            await firestore.deleteBillForUser(userId, item.id);
+            break;
+          case 'ADD_PORTFOLIO':
+            await firestore.addPortfolioAssetForUser(userId, item.data);
+            break;
+          case 'UPDATE_PORTFOLIO':
+            await firestore.updatePortfolioAssetForUser(userId, item.id, item.data);
+            break;
+          case 'DELETE_PORTFOLIO':
+            await firestore.deletePortfolioAssetForUser(userId, item.id);
+            break;
+          case 'ADD_DEBT':
+            await firestore.addDebtForUser(userId, item.data);
+            break;
+          case 'UPDATE_DEBT':
+            await firestore.updateDebtForUser(userId, item.id, item.data);
+            break;
+          case 'DELETE_DEBT':
+            await firestore.deleteDebtForUser(userId, item.id);
+            break;
+          case 'UPDATE_USER':
+            await firestore.updateUserProfile(userId, item.data);
+            break;
+          case 'ADD_CHAT_MESSAGE':
+            await firestore.addChatMessageForUser(userId, item.data);
+            break;
         }
       } catch (e) {
         console.error("Sync failed for item:", item, e);
