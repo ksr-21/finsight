@@ -467,7 +467,7 @@ interface StatCardProps {
 const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, color, delay }) => {
     const isNegative = amount < 0;
     const currencySymbol = CURRENCY_SYMBOLS[currency];
-    const formattedAmount = currencySymbol + formatAmount(amount);
+    const formattedAmount = currencySymbol + formatAmount(Math.abs(amount));
 
     const colorClasses = {
       emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
@@ -477,13 +477,13 @@ const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, colo
 
     // Dynamic font size based on amount length
     const getFontSize = (text: string) => {
-      if (text.length > 15) return 'text-xl';
-      if (text.length > 12) return 'text-2xl';
-      if (text.length > 10) return 'text-3xl';
-      return 'text-4xl';
+      if (text.length > 15) return 'text-lg';
+      if (text.length > 12) return 'text-xl';
+      if (text.length > 10) return 'text-2xl';
+      return 'text-3xl';
     };
 
-    const fontSizeClass = getFontSize(formattedAmount);
+    const fontSizeClass = getFontSize((isNegative ? '-' : '') + formattedAmount);
 
     return (
         <motion.div 
@@ -499,7 +499,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, colo
               </div>
               <p className="text-[10px] md:text-sm font-medium text-text-secondary dark:text-gray-400 mb-1 uppercase tracking-wider truncate">{title}</p>
               <div className="flex items-baseline gap-1 overflow-hidden">
-                <p className={`${fontSizeClass} font-bold text-text-primary dark:text-white tracking-tighter break-all ${isNegative && color === 'indigo' ? 'text-rose-500' : ''}`}>
+                <p className={`${fontSizeClass} font-bold text-text-primary dark:text-white tracking-tighter truncate ${isNegative && color === 'indigo' ? 'text-rose-500' : ''}`}>
                   {isNegative && '-'}{formattedAmount}
                 </p>
               </div>
