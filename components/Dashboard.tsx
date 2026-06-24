@@ -142,7 +142,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
       {/* AI Summary Banner */}
       <AiSummary transactions={transactions} budgets={budgets} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard 
           title="Total Income" 
           amount={totalIncome} 
@@ -192,23 +192,6 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user, onR
           color="rose"
           delay={0.25}
         />
-        <div className="relative group/card">
-          <StatCard
-            title="Net Worth"
-            amount={netWorth}
-            icon={<WalletIcon className="h-6 w-6" />}
-            currency={currency}
-            color="indigo"
-            delay={0.3}
-          />
-          <NavLink
-            to="/budgets"
-            className="absolute top-6 right-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover/card:opacity-100 transition-opacity z-20"
-            title="Manage Assets"
-          >
-            <SparklesIcon className="w-4 h-4" />
-          </NavLink>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -477,9 +460,9 @@ const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, colo
 
     // Dynamic font size based on amount length
     const getFontSize = (text: string) => {
-      if (text.length > 15) return 'text-lg';
-      if (text.length > 12) return 'text-xl';
-      if (text.length > 10) return 'text-2xl';
+      if (text.length > 15) return 'text-sm';
+      if (text.length > 12) return 'text-base';
+      if (text.length > 10) return 'text-xl';
       return 'text-3xl';
     };
 
@@ -498,8 +481,8 @@ const StatCard: React.FC<StatCardProps> = ({ title, amount, icon, currency, colo
                 {icon}
               </div>
               <p className="text-[10px] md:text-sm font-medium text-text-secondary dark:text-gray-400 mb-1 uppercase tracking-wider truncate">{title}</p>
-              <div className="flex items-baseline gap-1 overflow-hidden">
-                <p className={`${fontSizeClass} font-bold text-text-primary dark:text-white tracking-tighter truncate ${isNegative && color === 'indigo' ? 'text-rose-500' : ''}`}>
+              <div className="flex items-baseline gap-1 overflow-visible">
+                <p className={`${fontSizeClass} font-bold text-text-primary dark:text-white tracking-tighter whitespace-nowrap ${isNegative && color === 'indigo' ? 'text-rose-500' : ''}`}>
                   {isNegative && '-'}{formattedAmount}
                 </p>
               </div>
