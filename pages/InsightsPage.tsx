@@ -69,7 +69,7 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
 
     const dailySpending = last30DaysDates.map(date => {
       const amount = expenses
-        .filter(t => t.date === date)
+        .filter(t => t.date.split('T')[0] === date)
         .reduce((sum, t) => sum + t.amount, 0);
       return { date, amount };
     });

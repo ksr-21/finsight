@@ -124,7 +124,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
 
       return last7Days.map(date => {
         const dayTotal = transactions
-          .filter(t => t.date === date && t.type === TransactionType.EXPENSE)
+          .filter(t => t.date.split('T')[0] === date && t.type === TransactionType.EXPENSE)
           .reduce((sum, t) => sum + t.amount, 0);
         return {
           label: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
@@ -445,7 +445,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
                       />
                     </td>
                     <td className="px-8 py-5 text-sm font-mono text-text-secondary dark:text-gray-400">
-                      {new Date(t.date).toLocaleDateString()}
+                      {new Date(t.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-2">

@@ -266,7 +266,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                 <td className="py-3 px-4 text-text-secondary dark:text-gray-300">
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200">{t.category}</span>
                 </td>
-                <td className="py-3 px-4 text-text-secondary dark:text-gray-300">{new Date(t.date).toLocaleDateString()}</td>
+                <td className="py-3 px-4 text-text-secondary dark:text-gray-300">{new Date(t.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                 <td className={`py-3 px-4 font-semibold text-right ${t.type === 'Income' ? 'text-green-500' : 'text-red-500'}`}>
                   {t.type === 'Income' ? '+' : '-'}{currencySymbol}{formatAmount(t.amount)}
                 </td>
