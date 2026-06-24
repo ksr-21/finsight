@@ -27,7 +27,7 @@ interface TransactionFormProps {
 const getToday = () => {
   const today = new Date();
   const offset = today.getTimezoneOffset() * 60_000;
-  return new Date(today.getTime() - offset).toISOString().split('T')[0];
+  return new Date(today.getTime() - offset).toISOString().slice(0, 16);
 };
 
 const TransactionForm: React.FC<TransactionFormProps> = ({
@@ -448,10 +448,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
             <div className="space-y-2">
               <label className="ml-1 text-xs font-mono uppercase tracking-widest text-text-secondary dark:text-gray-400">
-                Date
+                Date & Time
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
                 className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 font-mono text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white"

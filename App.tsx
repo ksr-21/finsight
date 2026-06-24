@@ -169,19 +169,19 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const handleAddTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     // Convert amount back to USD before saving
     const baseAmount = currencyService.convertToBase(transaction.amount, currency, exchangeRates);
-    await api.addTransaction(user.uid, { ...transaction, amount: baseAmount });
-    await loadUserData(true);
     setIsFormModalOpen(false);
+    await api.addTransaction(user.uid, { ...transaction, amount: baseAmount });
+    loadUserData(true);
   };
 
   const handleEditTransaction = async (transactionData: Omit<Transaction, 'id'>) => {
     if (editingTransaction) {
       // Convert amount back to USD before saving
       const baseAmount = currencyService.convertToBase(transactionData.amount, currency, exchangeRates);
-      await api.updateTransaction(user.uid, editingTransaction.id, { ...transactionData, amount: baseAmount });
-      await loadUserData(true);
-      setEditingTransaction(null);
       setIsFormModalOpen(false);
+      setEditingTransaction(null);
+      await api.updateTransaction(user.uid, editingTransaction.id, { ...transactionData, amount: baseAmount });
+      loadUserData(true);
     }
   };
 

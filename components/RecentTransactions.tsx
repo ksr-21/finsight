@@ -57,7 +57,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, c
                   {t.type === TransactionType.INCOME ? '+' : '-'}{currencySymbol}{formatAmount(t.amount)}
                 </p>
                 <p className="text-[9px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">
-                  {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {new Date(t.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </motion.div>

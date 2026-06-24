@@ -41,7 +41,7 @@ export interface Transaction {
   amount: number;
   type: TransactionType;
   category: string;
-  date: string; // ISO string format: YYYY-MM-DD
+  date: string; // ISO string format: YYYY-MM-DDTHH:mm
   notes?: string;
   receiptUrl?: string;
   isRecurring?: boolean;
