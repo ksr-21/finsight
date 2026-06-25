@@ -54,7 +54,6 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
   const [repayingDebt, setRepayingDebt] = useState<Debt | null>(null);
   const [repaymentAmount, setRepaymentAmount] = useState<string>('');
-  const [isManageMode, setIsManageMode] = useState(false);
 
   const currencySymbol = CURRENCY_SYMBOLS[currency];
 
@@ -265,19 +264,23 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         const amount = parseFloat(repaymentAmount);
         if (isNaN(amount) || amount <= 0) return;
 
-        const baseAmount = currencyService.convertToBase(amount, currency, rates);
-        const newRemaining = Math.max(0, repayingDebt.remainingAmount - baseAmount);
-        const isCompleted = newRemaining === 0;
+        // Calculate new remaining amount in local currency
+        const newRemainingLocal = Math.max(0, repayingDebt.remainingAmount - amount);
+        const isCompleted = newRemainingLocal === 0;
+
+        // Convert amounts to base currency for storage
+        const baseRepaymentAmount = currencyService.convertToBase(amount, currency, rates);
+        const baseNewRemaining = currencyService.convertToBase(newRemainingLocal, currency, rates);
 
         const repayment = {
             id: Math.random().toString(36).substr(2, 9),
-            amount: baseAmount,
+            amount: baseRepaymentAmount,
             date: new Date().toISOString().split('T')[0],
             paymentMode: repayingDebt.paymentMode
         };
 
         await api.updateDebt(user.uid, repayingDebt.id, {
-            remainingAmount: newRemaining,
+            remainingAmount: baseNewRemaining,
             isCompleted: isCompleted,
             repayments: [...(repayingDebt.repayments || []), repayment]
         });
@@ -285,7 +288,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         // Add a transaction for the repayment
         await api.addTransaction(user.uid, {
             description: `${repayingDebt.type === 'Lent' ? 'Repayment from' : 'Repayment to'} ${repayingDebt.person}`,
-            amount: baseAmount,
+            amount: baseRepaymentAmount,
             type: repayingDebt.type === 'Lent' ? TransactionType.INCOME : TransactionType.EXPENSE,
             category: 'Other',
             date: new Date().toISOString().split('T')[0],
@@ -326,8 +329,13 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
 
       const baseAmount = currencyService.convertToBase(amount, currency, rates);
 
+      // contributingGoal.currentAmount is in local currency.
+      // we need to calculate the new amount in local currency first, then convert.
+      const newCurrentAmountLocal = contributingGoal.currentAmount + amount;
+      const baseNewCurrentAmount = currencyService.convertToBase(newCurrentAmountLocal, currency, rates);
+
       await api.updateGoal(user.uid, contributingGoal.id, {
-        currentAmount: contributingGoal.currentAmount + baseAmount
+        currentAmount: baseNewCurrentAmount
       });
 
       // Also add a transaction for the contribution
@@ -365,6 +373,23 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
     }
   };
 
+  const handleMarkBillAsPaid = async (bill: Bill) => {
+    try {
+      const rateData = await currencyService.getRates(Currency.USD);
+      const rates = rateData?.rates || {};
+      const baseAmount = currencyService.convertToBase(bill.amount, currency, rates);
+
+      await api.updateBill(user.uid, bill.id, {
+        ...bill,
+        amount: baseAmount,
+        isPaid: true
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error marking bill as paid:', error);
+    }
+  };
+
   const getBudgetSpending = (b: Budget) => {
     const now = new Date();
     const startDate = new Date();
@@ -379,7 +404,13 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       .filter(t => {
         const matchesCategory = b.category === 'Total' || t.category === b.category;
         const isExpense = t.type === 'Expense';
-        return matchesCategory && isExpense && new Date(t.date) >= startDate;
+
+        const tDateStr = t.date.split('T')[0];
+        const tParts = tDateStr.split('-');
+        const tDate = new Date(parseInt(tParts[0], 10), parseInt(tParts[1], 10) - 1, parseInt(tParts[2], 10));
+        tDate.setHours(0, 0, 0, 0);
+
+        return matchesCategory && isExpense && tDate >= startDate;
       })
       .reduce((sum, t) => sum + t.amount, 0);
   };
@@ -405,7 +436,6 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
             key={tab.id}
             onClick={() => {
               setActiveTab(tab.id as any);
-              setIsManageMode(false);
             }}
             className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs transition-all whitespace-nowrap ${
               activeTab === tab.id
@@ -489,14 +519,6 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Spending Targets</h2>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setIsManageMode(!isManageMode)}
-                className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
-              >
-                {isManageMode ? 'Done' : 'Manage'}
-              </button>
-            </div>
           </div>
           
           <div className="space-y-6">
@@ -533,25 +555,23 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                             {percent.toFixed(0)}% Used
                           </p>
                         </div>
-                        {isManageMode && (
-                          <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => {
-                                setEditingBudget(b);
-                                setIsBudgetModalOpen(true);
-                              }}
-                              className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
-                            >
-                              <EditIcon className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteBudget(b.id)}
-                              className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingBudget(b);
+                              setIsBudgetModalOpen(true);
+                            }}
+                            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                          >
+                            <EditIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBudget(b.id)}
+                            className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="h-2 w-full bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
@@ -577,14 +597,6 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Savings Goals</h2>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsManageMode(!isManageMode)}
-                className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
-              >
-                {isManageMode ? 'Done' : 'Manage'}
-              </button>
-            </div>
           </div>
 
           <div className="space-y-6">
@@ -621,25 +633,23 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                             {percent.toFixed(0)}%
                           </p>
                         </div>
-                        {isManageMode && (
-                          <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => {
-                                setEditingGoal(g);
-                                setIsGoalModalOpen(true);
-                              }}
-                              className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
-                            >
-                              <EditIcon className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteGoal(g.id)}
-                              className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingGoal(g);
+                              setIsGoalModalOpen(true);
+                            }}
+                            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                          >
+                            <EditIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteGoal(g.id)}
+                            className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -689,12 +699,6 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Recurring & Upcoming Bills</h2>
-            <button
-              onClick={() => setIsManageMode(!isManageMode)}
-              className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
-            >
-              {isManageMode ? 'Done' : 'Manage'}
-            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -713,12 +717,10 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bill.isPaid ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : isOverdue ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20 animate-pulse' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20'}`}>
                         <CalendarIcon className="w-6 h-6" />
                       </div>
-                      {isManageMode && (
-                        <div className="flex items-center gap-2">
-                           <button onClick={() => { setEditingBill(bill); setIsBillModalOpen(true); }} className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><EditIcon className="w-4 h-4" /></button>
-                           <button onClick={() => handleDeleteBill(bill.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                         <button onClick={() => { setEditingBill(bill); setIsBillModalOpen(true); }} className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><EditIcon className="w-4 h-4" /></button>
+                         <button onClick={() => handleDeleteBill(bill.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
+                      </div>
                     </div>
                     <h3 className="text-lg font-bold text-text-primary dark:text-white mb-1">{bill.name}</h3>
                     <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest mb-4">{bill.category}</p>
@@ -733,6 +735,15 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
+                        {!bill.isPaid && (
+                          <button
+                            onClick={() => handleMarkBillAsPaid(bill)}
+                            className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg hover:scale-110 transition-all text-[10px] font-bold uppercase tracking-widest"
+                            title="Mark as Paid"
+                          >
+                            Mark Paid
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setSplittingBill(bill);
@@ -764,12 +775,6 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         <div className="space-y-6 md:space-y-8">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Borrowed & Lent Money</h2>
-                <button
-                    onClick={() => setIsManageMode(!isManageMode)}
-                    className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
-                >
-                    {isManageMode ? 'Done' : 'Manage'}
-                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -790,12 +795,10 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${debt.isCompleted ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : debt.type === 'Lent' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}>
                                         <ScaleIcon className="w-6 h-6" />
                                     </div>
-                                    {isManageMode && (
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => { setEditingDebt(debt); setIsDebtModalOpen(true); }} className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><EditIcon className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDeleteDebt(debt.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => { setEditingDebt(debt); setIsDebtModalOpen(true); }} className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><EditIcon className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDeleteDebt(debt.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
+                                    </div>
                                 </div>
                                 <h3 className="text-lg font-bold text-text-primary dark:text-white mb-1">{debt.person}</h3>
                                 <p className={`text-[10px] font-mono uppercase tracking-widest mb-4 ${debt.type === 'Lent' ? 'text-indigo-500' : 'text-rose-500'}`}>{debt.type}</p>
@@ -874,12 +877,6 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white tracking-tight">Investment Portfolio</h2>
-            <button
-              onClick={() => setIsManageMode(!isManageMode)}
-              className="text-text-secondary dark:text-gray-400 font-bold text-xs md:text-sm hover:underline"
-            >
-              {isManageMode ? 'Done' : 'Manage'}
-            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -908,12 +905,10 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                           <p className="text-[10px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">{asset.type}</p>
                         </div>
                       </div>
-                      {isManageMode && (
-                        <div className="flex items-center gap-2">
-                           <button onClick={() => { setEditingPortfolio(asset); setIsPortfolioModalOpen(true); }} className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><EditIcon className="w-4 h-4" /></button>
-                           <button onClick={() => handleDeletePortfolio(asset.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                         <button onClick={() => { setEditingPortfolio(asset); setIsPortfolioModalOpen(true); }} className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><EditIcon className="w-4 h-4" /></button>
+                         <button onClick={() => handleDeletePortfolio(asset.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
+                      </div>
                     </div>
 
                     <div className="space-y-4">
